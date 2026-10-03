@@ -1,0 +1,120 @@
+name: commonroom
+
+x-app-environment: &app-environment
+  NODE_ENV: production
+  HOST: 0.0.0.0
+  PORT: '3001'
+  CLIENT_URL: ${CLIENT_URL:?Set the public HTTPS client origin}
+  DATABASE_URL: ${COMPOSE_DATABASE_URL:?Set the container-network application database URL}
+  REDIS_URL: ${COMPOSE_REDIS_URL:?Set the authenticated container-network Redis URL}
+  SESSION_SECRET: ${SESSION_SECRET:?Generate a unique session secret}
+  ADMIN_PASSWORD_HASH: ${ADMIN_PASSWORD_HASH:?Run operator setup and configure the scrypt hash}
+  ADMIN_TOTP_SECRET: ${ADMIN_TOTP_SECRET:?Configure operator MFA}
+  AGE_MODE: ${AGE_MODE:?Configure verified provider mode}
+  AGE_VERIFICATION_URL: ${AGE_VERIFICATION_URL:?Configure the tested age verification gateway}
+  AGE_WEBHOOK_SECRET: ${AGE_WEBHOOK_SECRET:?Set the server-only age gateway signing secret}
+  AUDIT_RETENTION_DAYS: ${AUDIT_RETENTION_DAYS:-14}
+  MAX_ACTIVE_SESSIONS: ${MAX_ACTIVE_SESSIONS:-500}
+  STUN_SERVER_URL: ${STUN_SERVER_URL:-stun:stun.l.google.com:19302}
+  TURN_SERVER_URL: ${TURN_SERVER_URL:?Configure an authenticated TURN service}
+  TURN_SHARED_SECRET: ${TURN_SHARED_SECRET:?Set the server-only coturn signing secret}
+  TURN_CREDENTIAL_TTL_SECONDS: ${TURN_CREDENTIAL_TTL_SECONDS:-3600}
+  ICE_TRANSPORT_POLICY: ${ICE_TRANSPORT_POLICY:-all}
+  SESSION_TTL_SECONDS: ${SESSION_TTL_SECONDS:-7200}
+  REPORT_RETENTION_DAYS: ${REPORT_RETENTION_DAYS:-30}
+  FACE_INTERVAL_MS: ${FACE_INTERVAL_MS:-1500}
+  FACE_WARNING_MS: ${FACE_WARNING_MS:-10000}
+  FACE_PAUSE_MS: ${FACE_PAUSE_MS:-30000}
+  FACE_DISCONNECT_MS: ${FACE_DISCONNECT_MS:-60000}
+  TRUST_PROXY: 'false'
+
+services:
+  app:
+    image: commonroom:local
+    build:
+      context: .
+      dockerfile: server/Dockerfile
+    environment: *app-environment
+    ports:
+      - '127.0.0.1:${APP_HOST_PORT:-3001}:3001'
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    init: true
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+    stop_grace_period: 20s
+    networks:
+      - internal
+
+  postgres:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: commonroom_admin
+      POSTGRES_DB: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_ADMIN_PASSWORD:?Generate a unique PostgreSQL administrator password}
+      APP_DATABASE_PASSWORD: ${POSTGRES_APP_PASSWORD:?Generate a separate application database password}
+      POSTGRES_INITDB_ARGS: --auth-host=scram-sha-256
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./docker/init-db.sh:/docker-entrypoint-initdb.d/10-commonroom.sh:ro
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U commonroom_admin -d postgres']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    restart: unless-stopped
+    networks:
+      - internal
+
+  redis:
+    image: redis:8
+    entrypoint: ['/bin/sh', '/opt/commonroom/redis-entrypoint.sh']
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?Generate at least 64 random hexadecimal characters}
+      REDISCLI_AUTH: ${REDIS_PASSWORD:?Generate at least 64 random hexadecimal characters}
+    volumes:
+      - ./docker/redis-entrypoint.sh:/opt/commonroom/redis-entrypoint.sh:ro
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - internal
+
+  migrate:
+    image: commonroom:local
+    profiles: [tools]
+    environment: *app-environment
+    command: ['node', 'dist/server/src/database/migrate.js']
+    depends_on:
+      postgres:
+        condition: service_healthy
+    init: true
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      - internal
+
+networks:
+  internal:
+    driver: bridge
+
+volumes:
+  postgres-data:

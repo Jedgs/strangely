@@ -1,0 +1,48 @@
+{
+  "name": "strangely",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "workspaces": [
+    "client",
+    "server",
+    "shared"
+  ],
+  "scripts": {
+    "dev": "concurrently -k -n api,web \"npm:dev:server\" \"npm:dev:client\"",
+    "dev:client": "npm run dev --workspace @strangely/frontend",
+    "dev:server": "npm run dev --workspace @strangely/backend",
+    "typecheck": "tsc -p client/tsconfig.json --noEmit && tsc -p server/tsconfig.json --noEmit",
+    "build": "npm run build:client && npm run build:server",
+    "build:client": "npm run build --workspace @strangely/frontend",
+    "build:server": "npm run build --workspace @strangely/backend",
+    "start": "npm run start:server",
+    "start:server": "npm run start --workspace @strangely/backend",
+    "lint": "eslint client server shared scripts",
+    "format": "prettier --write client server shared scripts docs *.json *.md",
+    "format:check": "prettier --check client server shared scripts docs *.json *.md",
+    "test": "vitest run",
+    "test:integration": "node --env-file-if-exists=.env --import tsx --test server/integration/*.test.ts",
+    "db:migrate": "npm run db:migrate:dev --workspace @strangely/backend",
+    "db:retention": "node --env-file-if-exists=.env --import tsx server/src/database/retention.ts",
+    "check:services": "node --env-file-if-exists=.env --import tsx scripts/check-services.ts",
+    "admin:setup": "node scripts/admin-setup.mjs",
+    "verify:isolated": "node --env-file-if-exists=.env scripts/verify-isolated.mjs",
+    "assets:face": "npm run assets:face --workspace @strangely/frontend",
+    "moderation:ban": "node --env-file-if-exists=.env --import tsx server/src/moderation/ban-cli.ts"
+  },
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "concurrently": "10.0.5",
+    "eslint": "10.11.0",
+    "eslint-plugin-react-hooks": "7.1.1",
+    "globals": "17.13.0",
+    "prettier": "3.9.9",
+    "typescript": "6.0.3",
+    "typescript-eslint": "8.71.0",
+    "vitest": "5.0.3"
+  }
+}

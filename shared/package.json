@@ -1,0 +1,10 @@
+{
+  "name": "@strangely/shared",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Shared Strangely API and realtime contracts",
+  "dependencies": {
+    "zod": "4.6.5"
+  }
+}

@@ -1,0 +1,337 @@
+.developer-page {
+  min-height: 100dvh;
+  background:
+    radial-gradient(ellipse at 85% 0%, #36204b66, transparent 45%), #040e26;
+  color: #f5f7ff;
+}
+.developer-page .button-secondary {
+  background: #15254b;
+  color: #f5f7ff;
+  border: 1px solid #526fa7;
+}
+.developer-page .button-danger {
+  background: #c52253;
+  color: #fff;
+  border: 1px solid #f38cad;
+}
+.developer-header {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 24px max(24px, calc((100% - 1440px) / 2));
+  border-bottom: 1px solid #314066;
+  flex-wrap: wrap;
+}
+.developer-header > :last-child {
+  margin-left: auto;
+}
+.developer-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #b8c9f4;
+  font-size: 14px;
+}
+.developer-main {
+  width: min(1440px, calc(100% - 48px));
+  margin: 0 auto;
+  padding: 42px 0 60px;
+}
+.developer-main h1 {
+  font-size: clamp(30px, 4vw, 48px);
+  line-height: 1.15;
+  margin: 12px 0;
+}
+.developer-intro,
+.developer-panel > p,
+.developer-footnote {
+  color: #bbc8e8;
+  max-width: 85ch;
+  line-height: 1.6;
+}
+.developer-login {
+  margin-top: 32px;
+  max-width: 500px;
+  border: 1px solid #425689;
+  border-radius: 24px;
+  background: #101b3d;
+  padding: 28px;
+  display: grid;
+  gap: 18px;
+}
+.developer-login h2,
+.developer-panel h2 {
+  margin: 0;
+  font-size: 24px;
+}
+.developer-login p,
+.developer-action-form p {
+  font-size: 14px;
+  color: #bbc8e8;
+}
+.developer-login label,
+.developer-action-form label {
+  display: grid;
+  gap: 9px;
+  font-weight: 600;
+}
+.developer-page input,
+.developer-page textarea,
+.developer-page select {
+  width: 100%;
+  min-height: 46px;
+  color: #fff;
+  border: 1px solid #536795;
+  border-radius: 12px;
+  background: #07122d;
+  padding: 12px;
+  font: inherit;
+}
+.developer-page textarea {
+  resize: vertical;
+  min-height: 110px;
+}
+.developer-page :focus-visible {
+  outline: 3px solid #67a7ff;
+  outline-offset: 4px;
+}
+.developer-notice {
+  padding: 14px 18px;
+  background: #083b33;
+  border: 1px solid #168f70;
+  border-radius: 16px;
+}
+.developer-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin: 30px 0;
+}
+.developer-stats article {
+  display: grid;
+  gap: 14px;
+  padding: 24px;
+  background: #101b3b;
+  border: 1px solid #344877;
+  border-radius: 20px;
+}
+.developer-stats span {
+  color: #becbec;
+  font-size: 14px;
+}
+.developer-stats strong {
+  font-size: 36px;
+}
+.developer-stats .developer-stat-text {
+  font-size: 21px;
+}
+.developer-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin: 18px 0;
+  color: #becbec;
+  font-size: 14px;
+}
+.developer-tabs {
+  display: flex;
+  gap: 8px;
+  margin: 24px 0;
+  flex-wrap: wrap;
+}
+.developer-page button:not(.button):not(.icon-button) {
+  border: 1px solid #3d5081;
+  border-radius: 12px;
+  padding: 10px 14px;
+  background: #142347;
+  color: #fff;
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+  min-height: 44px;
+}
+.developer-tabs button[aria-current] {
+  background: linear-gradient(100deg, #a92089, #145acc) !important;
+  border-color: #a185ee !important;
+}
+.developer-page button:disabled {
+  opacity: 0.5;
+  cursor: wait;
+}
+.developer-panel {
+  border: 1px solid #344877;
+  border-radius: 24px;
+  background: #0b1531;
+  padding: 26px;
+}
+.developer-table-scroll {
+  overflow-x: auto;
+  scrollbar-color: #9066eb #101b3b;
+  border-radius: 12px;
+  margin-top: 20px;
+}
+.developer-page table {
+  width: 100%;
+  min-width: 780px;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+.developer-page th,
+.developer-page td {
+  text-align: left;
+  padding: 15px 12px;
+  border-bottom: 1px solid #293c61;
+  vertical-align: top;
+}
+.developer-page th {
+  color: #b5caff;
+  background: #142140;
+  white-space: nowrap;
+}
+.developer-page code {
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.developer-row-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.developer-severity {
+  padding: 6px 9px;
+  border-radius: 999px;
+  display: inline-block;
+  font-size: 12px;
+}
+.severity-info {
+  background: #123b66;
+  color: #bfdcff;
+}
+.severity-warning {
+  background: #584313;
+  color: #ffe5a2;
+}
+.severity-critical {
+  background: #5f1634;
+  color: #ffd3e4;
+}
+.developer-cards {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 20px;
+}
+.developer-cards article {
+  padding: 20px;
+  border: 1px solid #344877;
+  background: #111e3e;
+  border-radius: 18px;
+  min-width: 0;
+}
+.developer-cards header {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  font-size: 14px;
+  color: #bbc8e8;
+}
+.developer-user-text {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  line-height: 1.6;
+}
+.developer-empty {
+  padding: 32px;
+  text-align: center;
+  color: #bbc8e8;
+}
+.developer-footnote {
+  margin-top: 24px;
+  font-size: 13px;
+}
+.developer-action-form {
+  display: grid;
+  gap: 20px;
+  margin-top: 20px;
+}
+.age-verification {
+  display: flex;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid #496cb0;
+  background: #102348;
+  border-radius: 16px;
+  margin: 16px 0;
+}
+.age-verification > svg {
+  flex-shrink: 0;
+}
+.age-verification p {
+  color: #c0d0f3;
+  font-size: 13px;
+  line-height: 1.6;
+  margin: 8px 0;
+}
+.age-verification .button {
+  min-height: 42px;
+  font-size: 13px;
+  margin-top: 8px;
+}
+.safety-disclosure {
+  font-size: 14px;
+  line-height: 1.7;
+}
+@media (max-width: 900px) {
+  .developer-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .developer-cards {
+    grid-template-columns: 1fr;
+  }
+  .developer-header .brand {
+    font-size: 24px;
+  }
+}
+@media (max-width: 520px) {
+  .developer-main {
+    width: calc(100% - 32px);
+    padding-top: 28px;
+  }
+  .developer-header {
+    padding: 18px 16px;
+    gap: 12px;
+  }
+  .developer-badge {
+    order: 3;
+    width: 100%;
+  }
+  .developer-header .button {
+    font-size: 13px;
+    padding: 10px 16px;
+    min-height: 42px;
+  }
+  .developer-stats {
+    gap: 10px;
+  }
+  .developer-stats article {
+    padding: 16px;
+  }
+  .developer-stats strong {
+    font-size: 28px;
+  }
+  .developer-panel {
+    padding: 18px;
+  }
+  .developer-login {
+    padding: 22px;
+  }
+  .developer-stats .developer-stat-text {
+    font-size: 16px;
+  }
+  .developer-tabs button {
+    flex: 1 1 40%;
+  }
+}
