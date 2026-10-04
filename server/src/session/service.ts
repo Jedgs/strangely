@@ -118,7 +118,10 @@ export class SessionService {
           'Xirsys ICE provisioning failed:',
           error instanceof Error ? error.message : 'unknown error',
         );
-        throw unavailable();
+        // Keep session creation available during a transient provider outage.
+        // The fallback contains only the configured public STUN server (and
+        // any legacy server-side TURN credentials); no Xirsys secret is sent
+        // to the client. Clients can retry ICE on the next session.
       }
     }
     return {
