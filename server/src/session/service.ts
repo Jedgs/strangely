@@ -10,7 +10,7 @@ import type { Connections } from '../database/connections.js';
 import type { AgeAssuranceProvider } from './age-assurance.js';
 import { privateReference } from '../security/identity.js';
 import { ServiceError, unavailable } from '../security/errors.js';
-import { makeIceServers } from '../webrtc/ice.js';
+import { makeIceServers, makeXirsysIceServers } from '../webrtc/ice.js';
 
 export const SESSION_COOKIE = 'cr_session';
 export interface AnonymousSession {
@@ -104,11 +104,23 @@ export class SessionService {
       throw unavailable();
     }
   }
-  info(session: AnonymousSession): SessionInfo {
+  async info(session: AnonymousSession): Promise<SessionInfo> {
+    let iceServers = makeIceServers(this.config, session.id);
+    if (
+      this.config.XIRSYS_IDENT &&
+      this.config.XIRSYS_SECRET &&
+      this.config.XIRSYS_CHANNEL
+    ) {
+      try {
+        iceServers = await makeXirsysIceServers(this.config);
+      } catch {
+        throw unavailable();
+      }
+    }
     return {
       sessionId: session.id,
       expiresAt: session.expiresAt,
-      iceServers: makeIceServers(this.config, session.id),
+      iceServers,
       iceTransportPolicy: this.config.ICE_TRANSPORT_POLICY,
       face: {
         intervalMs: this.config.FACE_INTERVAL_MS,

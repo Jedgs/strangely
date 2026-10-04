@@ -73,7 +73,7 @@ export function registerSessionRoutes(
     }
     if (existing) {
       await bans.assertAllowed(existing.ipRef, existing.sessionRef);
-      return sessions.info(existing);
+      return await sessions.info(existing);
     }
     const { token, session } = await sessions.create(
       parsed.data,
@@ -89,7 +89,7 @@ export function registerSessionRoutes(
       sameSite: config.COOKIE_SAMESITE,
       maxAge: config.SESSION_TTL_SECONDS,
     });
-    return sessions.info(session);
+    return await sessions.info(session);
   });
   app.get('/api/session', async (request) => {
     const session = await sessions.authenticate(
@@ -101,6 +101,6 @@ export function registerSessionRoutes(
       privateReference(config, 'network', request.ip),
     );
     await rates.check('session-info', session.sessionRef, 30, 60_000);
-    return sessions.info(session);
+    return await sessions.info(session);
   });
 }

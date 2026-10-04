@@ -84,6 +84,9 @@ const schema = z
       .default('stun:stun.l.google.com:19302'),
     TURN_SERVER_URL: z.string().default(''),
     TURN_SHARED_SECRET: z.string().default(''),
+    XIRSYS_IDENT: z.string().default(''),
+    XIRSYS_SECRET: z.string().default(''),
+    XIRSYS_CHANNEL: z.string().regex(/^[A-Za-z0-9_-]{1,100}$/).default(''),
     TURN_CREDENTIAL_TTL_SECONDS: z.coerce
       .number()
       .int()
@@ -177,16 +180,20 @@ const schema = z
         message: 'TURN requires a valid URL and a strong shared secret',
       });
     }
-    if (value.ICE_TRANSPORT_POLICY === 'relay' && !value.TURN_SERVER_URL) {
+    const hasXirsys =
+      !!value.XIRSYS_IDENT && !!value.XIRSYS_SECRET && !!value.XIRSYS_CHANNEL;
+    if (value.ICE_TRANSPORT_POLICY === 'relay' && !value.TURN_SERVER_URL && !hasXirsys) {
       ctx.addIssue({ code: 'custom', message: 'Relay policy requires TURN' });
     }
     if (
       value.NODE_ENV === 'production' &&
-      (!value.CLIENT_URL.startsWith('https://') || !value.TURN_SERVER_URL)
+      (!value.CLIENT_URL.startsWith('https://') ||
+        (!value.TURN_SERVER_URL &&
+          !(value.XIRSYS_IDENT && value.XIRSYS_SECRET && value.XIRSYS_CHANNEL)))
     ) {
       ctx.addIssue({
         code: 'custom',
-        message: 'Production requires HTTPS and TURN fallback',
+        message: 'Production requires HTTPS and a configured TURN provider',
       });
     }
   });

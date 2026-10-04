@@ -21,3 +21,32 @@ export function makeIceServers(
   }
   return servers;
 }
+
+/** Fetch short-lived ICE credentials from Xirsys without exposing its API secret. */
+export async function makeXirsysIceServers(
+  config: Config,
+): Promise<SessionInfo['iceServers']> {
+  const response = await fetch(
+    `https://global.xirsys.net/_turn/${encodeURIComponent(config.XIRSYS_CHANNEL)}?webrtc=1`,
+    {
+      method: 'PUT',
+      headers: {
+        Authorization: `Basic ${Buffer.from(`${config.XIRSYS_IDENT}:${config.XIRSYS_SECRET}`).toString('base64')}`,
+      },
+      signal: AbortSignal.timeout(5000),
+    },
+  );
+  if (!response.ok) throw new Error(`Xirsys ICE request failed (${response.status})`);
+  const body = (await response.json()) as { v?: { iceServers?: unknown } };
+  if (!Array.isArray(body.v?.iceServers) || body.v.iceServers.length === 0)
+    throw new Error('Xirsys returned no ICE servers');
+  return body.v.iceServers.filter((entry): entry is SessionInfo['iceServers'][number] => {
+    if (!entry || typeof entry !== 'object') return false;
+    const value = entry as Record<string, unknown>;
+    return (
+      (typeof value.urls === 'string' || Array.isArray(value.urls)) &&
+      (!('username' in value) || typeof value.username === 'string') &&
+      (!('credential' in value) || typeof value.credential === 'string')
+    );
+  });
+}
