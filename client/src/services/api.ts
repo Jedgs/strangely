@@ -63,9 +63,19 @@ export const createSession = () =>
       version: CONSENT_VERSION,
     }),
   });
-export const getSession = () => request<SessionInfo>('/api/session');
-export const endSession = () =>
-  request('/api/session/end', { method: 'POST', body: '{}' });
+function sessionAuthorization(sessionToken?: string): HeadersInit {
+  return sessionToken ? { Authorization: `Bearer ${sessionToken}` } : {};
+}
+export const getSession = (sessionToken?: string) =>
+  request<SessionInfo>('/api/session', {
+    headers: sessionAuthorization(sessionToken),
+  });
+export const endSession = (sessionToken?: string) =>
+  request('/api/session/end', {
+    method: 'POST',
+    body: '{}',
+    headers: sessionAuthorization(sessionToken),
+  });
 
 export async function getPresence(signal?: AbortSignal): Promise<PresenceInfo> {
   const data = await request<PresenceInfo>('/api/presence', {

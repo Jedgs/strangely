@@ -125,7 +125,7 @@ describe('anonymous consent and boundary checks', () => {
     expect(serialized).not.toContain('203.0.113.42');
     expect(created.session.expiresAt).toBeGreaterThan(Date.now());
   });
-  it('sets the HTTP-only strict cookie and returns only public session information', async () => {
+  it('sets the HTTP-only cookie and returns an opaque session credential', async () => {
     const evaluate = vi
       .fn()
       .mockResolvedValueOnce([1, 60_000])
@@ -150,8 +150,8 @@ describe('anonymous consent and boundary checks', () => {
       expect(cookie).toContain('Path=/');
       const info = response.json();
       expect(info.sessionId).toMatch(/^[a-f0-9-]{36}$/);
+      expect(info.sessionToken).toMatch(/^[A-Za-z0-9_-]{43}$/);
       expect(info.face.intervalMs).toBe(config.FACE_INTERVAL_MS);
-      expect(info).not.toHaveProperty('token');
       expect(info).not.toHaveProperty('ipRef');
       expect(info).not.toHaveProperty('sessionRef');
       expect(response.body).not.toContain(config.SESSION_SECRET);

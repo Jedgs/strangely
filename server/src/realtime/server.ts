@@ -239,9 +239,13 @@ export function registerRealtime(
       );
       const networkRef = privateReference(config, 'network', ip);
       await rates.check('socket-connect', networkRef, 30, 60_000);
-      const token = app.parseCookie(socket.handshake.headers.cookie ?? '')[
-        SESSION_COOKIE
-      ];
+      const authToken = socket.handshake.auth.sessionToken;
+      const token =
+        typeof authToken === 'string'
+          ? authToken
+          : app.parseCookie(socket.handshake.headers.cookie ?? '')[
+              SESSION_COOKIE
+            ];
       const session = await sessions.authenticate(token);
       await bans.assertAllowed(session.ipRef, session.sessionRef, networkRef);
       if (socket.conn.readyState !== 'open')

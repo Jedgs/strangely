@@ -73,7 +73,7 @@ describe('separate frontend and API origins', () => {
     }
   });
 
-  it('rejects foreign origins and unsupported preflight methods or headers', async () => {
+  it('rejects foreign origins and unsupported preflight methods', async () => {
     const app = await createApp(config, connections());
     try {
       for (const origin of [
@@ -91,13 +91,7 @@ describe('separate frontend and API origins', () => {
         expect(response.statusCode).toBe(403);
         expect(response.headers['access-control-allow-origin']).toBeUndefined();
       }
-      for (const headers of [
-        { 'access-control-request-method': 'DELETE' },
-        {
-          'access-control-request-method': 'POST',
-          'access-control-request-headers': 'content-type,authorization',
-        },
-      ]) {
+      for (const headers of [{ 'access-control-request-method': 'DELETE' }]) {
         const response = await app.inject({
           method: 'OPTIONS',
           url: '/api/session',
@@ -105,6 +99,19 @@ describe('separate frontend and API origins', () => {
         });
         expect(response.statusCode).toBe(403);
       }
+      const authorized = await app.inject({
+        method: 'OPTIONS',
+        url: '/api/session',
+        headers: {
+          origin: config.CLIENT_URL,
+          'access-control-request-method': 'POST',
+          'access-control-request-headers': 'content-type,authorization',
+        },
+      });
+      expect(authorized.statusCode).toBe(204);
+      expect(authorized.headers['access-control-allow-headers']).toContain(
+        'Authorization',
+      );
     } finally {
       await app.close();
     }

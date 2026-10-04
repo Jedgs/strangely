@@ -109,13 +109,21 @@ export async function createApp(
           (headers &&
             headers
               .split(',')
-              .some((name) => name.trim().toLowerCase() !== 'content-type'))
+              .some(
+                (name) =>
+                  !['content-type', 'authorization'].includes(
+                    name.trim().toLowerCase(),
+                  ),
+              ))
         )
           return reply
             .code(403)
             .send({ error: 'This request is not allowed.' });
         reply.header('Access-Control-Allow-Methods', 'GET, POST');
-        reply.header('Access-Control-Allow-Headers', 'Content-Type');
+        reply.header(
+          'Access-Control-Allow-Headers',
+          'Content-Type, Authorization',
+        );
         reply.header('Access-Control-Max-Age', '600');
         return reply.code(204).send();
       }

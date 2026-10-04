@@ -27,6 +27,7 @@ class FakePeer {
 }
 const session: SessionInfo = {
   sessionId: 'session',
+  sessionToken: 'a'.repeat(43),
   expiresAt: Date.now() + 60000,
   iceServers: [],
   iceTransportPolicy: 'all',

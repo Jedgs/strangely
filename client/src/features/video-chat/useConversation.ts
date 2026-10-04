@@ -165,6 +165,7 @@ export function useConversation() {
       reconnectionDelay: 1000,
       timeout: 8000,
       withCredentials: true,
+      auth: { sessionToken: session.sessionToken },
     });
     socketRef.current = socket;
     let readyTimeout: ReturnType<typeof setTimeout>;
@@ -375,7 +376,7 @@ export function useConversation() {
     setError(null);
     setMessage('Allow camera and microphone access in your browser.');
     try {
-      const info = await getSession();
+      const info = await getSession(sessionRef.current?.sessionToken);
       if (token !== generation.current) return;
       sessionRef.current = info;
       setSession(info);
@@ -452,7 +453,7 @@ export function useConversation() {
     const token = generation.current;
     try {
       // Refresh short-lived TURN credentials before each new conversation.
-      const info = await getSession();
+      const info = await getSession(sessionRef.current?.sessionToken);
       if (token !== generation.current) return;
       if (socketRef.current !== socket || !socket.connected)
         throw new Error('Your connection changed. Please try searching again.');
@@ -541,13 +542,14 @@ export function useConversation() {
     setCameraOff((value) => !value);
   }
   async function leave() {
+    const sessionToken = sessionRef.current?.sessionToken;
     void stop();
     setSession(null);
     sessionRef.current = null;
     setLastMatchId(null);
     setState('idle');
     // Media is released first even if the server is unavailable during logout.
-    await endSession().catch(() => {});
+    await endSession(sessionToken).catch(() => {});
   }
 
   return {

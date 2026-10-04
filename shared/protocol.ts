@@ -88,6 +88,12 @@ export interface PresenceInfo {
 }
 export interface SessionInfo {
   sessionId: string;
+  /**
+   * Opaque, in-memory credential for this anonymous browser session. It is
+   * never persisted by the client and lets realtime work when a browser blocks
+   * third-party cookies between the web app and API.
+   */
+  sessionToken?: string;
   expiresAt: number;
   iceServers: {
     urls: string | string[];
