@@ -124,6 +124,18 @@ export function ChatRoom({
     setShowChrome(true);
     setInteraction((value) => value + 1);
   }
+  function toggleControls() {
+    // Open menus, errors, and explicitly pinned controls must stay reachable.
+    if (keepChromeVisible) {
+      revealControls();
+      return;
+    }
+    if (showChrome) {
+      setShowChrome(false);
+      return;
+    }
+    revealControls();
+  }
   useEffect(() => {
     if (keepChromeVisible) return;
     const timer = window.setTimeout(() => {
@@ -243,12 +255,12 @@ export function ChatRoom({
           className="video-controls-toggle"
           aria-label={
             chromeVisible
-              ? 'Keep conversation controls visible'
+              ? 'Hide conversation controls'
               : 'Show conversation controls'
           }
           aria-expanded={chromeVisible}
           aria-controls="room-controls"
-          onClick={revealControls}
+          onClick={toggleControls}
         />
         <h1 ref={headingRef} tabIndex={-1} className="sr-only">
           Your Strangely video conversation
@@ -349,7 +361,8 @@ export function ChatRoom({
               Enable camera again.
             </li>
             <li>
-              Tap the video to show controls. Use More to keep them visible.
+              Tap the video to show or hide controls. Use More to keep them
+              visible.
             </li>
           </ul>
         </Dialog>
