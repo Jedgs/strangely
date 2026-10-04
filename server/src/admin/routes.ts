@@ -30,8 +30,8 @@ export function registerAdminRoutes(
   const options = {
     path: '/',
     httpOnly: true,
-    secure: config.NODE_ENV === 'production',
-    sameSite: 'strict' as const,
+    secure: config.COOKIE_SECURE || config.NODE_ENV === 'production',
+    sameSite: config.COOKIE_SAMESITE,
     maxAge: 1800,
   };
   // A plugin-scoped hook guards every operator endpoint, including future ones.

@@ -111,6 +111,11 @@ const schema = z
       .enum(['true', 'false'])
       .default('false')
       .transform((value) => value === 'true'),
+    COOKIE_SECURE: z
+      .enum(['true', 'false'])
+      .default('false')
+      .transform((value) => value === 'true'),
+    COOKIE_SAMESITE: z.enum(['strict', 'none']).default('strict'),
   })
   .superRefine((value, ctx) => {
     if (value.TRUST_EDGE_COUNTRY && !configuredSecret(value.EDGE_GEO_SECRET))

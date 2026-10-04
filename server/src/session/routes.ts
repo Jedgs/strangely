@@ -42,8 +42,8 @@ export function registerSessionRoutes(
     reply.clearCookie(SESSION_COOKIE, {
       path: '/',
       httpOnly: true,
-      sameSite: 'strict',
-      secure: config.NODE_ENV === 'production',
+      sameSite: config.COOKIE_SAMESITE,
+      secure: config.COOKIE_SECURE || config.NODE_ENV === 'production',
     });
     return { ok: true };
   });
@@ -85,8 +85,8 @@ export function registerSessionRoutes(
     reply.setCookie(SESSION_COOKIE, token, {
       path: '/',
       httpOnly: true,
-      secure: config.NODE_ENV === 'production',
-      sameSite: 'strict',
+      secure: config.COOKIE_SECURE || config.NODE_ENV === 'production',
+      sameSite: config.COOKIE_SAMESITE,
       maxAge: config.SESSION_TTL_SECONDS,
     });
     return sessions.info(session);

@@ -45,8 +45,8 @@ export function registerAgeRoutes(
     const result = await provider.start(request.ip);
     reply.setCookie(AGE_COOKIE, result.challenge, {
       httpOnly: true,
-      secure: config.NODE_ENV === 'production',
-      sameSite: 'strict',
+      secure: config.COOKIE_SECURE || config.NODE_ENV === 'production',
+      sameSite: config.COOKIE_SAMESITE,
       path: '/api',
       maxAge: 600,
     });
