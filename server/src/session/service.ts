@@ -113,7 +113,11 @@ export class SessionService {
     ) {
       try {
         iceServers = await makeXirsysIceServers(this.config);
-      } catch {
+      } catch (error) {
+        console.error(
+          'Xirsys ICE provisioning failed:',
+          error instanceof Error ? error.message : 'unknown error',
+        );
         throw unavailable();
       }
     }
