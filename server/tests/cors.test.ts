@@ -17,6 +17,46 @@ const connections = () =>
   }) as unknown as Connections;
 
 describe('separate frontend and API origins', () => {
+  it('limits the admin console origin to administrator endpoints', async () => {
+    const adminConfig = readConfig({
+      NODE_ENV: 'test',
+      CLIENT_URL: 'https://app.strangely.example',
+      ADMIN_CLIENT_URL: 'https://admin.strangely.example',
+      DATABASE_URL: 'postgresql://localhost/test',
+      REDIS_URL: 'redis://localhost',
+      SESSION_SECRET:
+        'split-deployment-test-secret-at-least-thirty-two-characters',
+    });
+    const app = await createApp(adminConfig, connections());
+    try {
+      const adminPreflight = await app.inject({
+        method: 'OPTIONS',
+        url: '/api/admin/login',
+        headers: {
+          origin: adminConfig.ADMIN_CLIENT_URL,
+          'access-control-request-method': 'POST',
+          'access-control-request-headers': 'content-type',
+        },
+      });
+      expect(adminPreflight.statusCode).toBe(204);
+      expect(adminPreflight.headers['access-control-allow-origin']).toBe(
+        adminConfig.ADMIN_CLIENT_URL,
+      );
+      const publicPreflight = await app.inject({
+        method: 'OPTIONS',
+        url: '/api/session',
+        headers: {
+          origin: adminConfig.ADMIN_CLIENT_URL,
+          'access-control-request-method': 'POST',
+        },
+      });
+      expect(publicPreflight.statusCode).toBe(403);
+      expect(publicPreflight.headers['access-control-allow-origin']).toBeUndefined();
+    } finally {
+      await app.close();
+    }
+  });
+
   it('keeps rate-limit responses readable only by the configured frontend', async () => {
     const app = await createApp(config, connections());
     try {

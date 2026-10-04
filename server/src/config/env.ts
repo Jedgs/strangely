@@ -39,6 +39,24 @@ const schema = z
         'Use an HTTP(S) origin without a path or credentials',
       )
       .default('http://127.0.0.1:5173'),
+    ADMIN_CLIENT_URL: z
+      .string()
+      .default('')
+      .refine(
+        (value) =>
+          !value ||
+          validUrl(
+            value,
+            (url) =>
+              ['http:', 'https:'].includes(url.protocol) &&
+              !url.username &&
+              !url.password &&
+              url.pathname === '/' &&
+              !url.search &&
+              !url.hash,
+          ),
+        'Use an HTTP(S) admin origin without a path or credentials',
+      ),
     DATABASE_URL: z
       .url()
       .refine(
@@ -188,6 +206,8 @@ const schema = z
     if (
       value.NODE_ENV === 'production' &&
       (!value.CLIENT_URL.startsWith('https://') ||
+        (value.ADMIN_CLIENT_URL &&
+          !value.ADMIN_CLIENT_URL.startsWith('https://')) ||
         (!value.TURN_SERVER_URL &&
           !(value.XIRSYS_IDENT && value.XIRSYS_SECRET && value.XIRSYS_CHANNEL)))
     ) {

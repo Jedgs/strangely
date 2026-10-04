@@ -78,6 +78,7 @@ See Vercel's [monorepo guide](https://vercel.com/docs/monorepos), [shared-source
 | `DATABASE_URL`         | `${{Postgres.DATABASE_URL}}` if the database service is named `Postgres`                             |
 | `REDIS_URL`            | `${{Redis.REDIS_URL}}` if the Redis service is named `Redis`                                         |
 | `SESSION_SECRET`       | Newly generated random value, at least 32 characters                                                 |
+| `ADMIN_CLIENT_URL`     | Exact HTTPS origin of the separate administrator console; it may call only `/api/admin/*`            |
 | `ADMIN_PASSWORD_HASH`  | Salted scrypt hash from `npm run admin:setup`; server only                                           |
 | `ADMIN_TOTP_SECRET`    | Private authenticator secret from operator setup; required in production                             |
 | `AGE_MODE`             | `provider`; self-declared development mode cannot start production                                   |

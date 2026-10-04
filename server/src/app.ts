@@ -63,8 +63,15 @@ export async function createApp(
       reply.header('Cache-Control', 'no-store');
       const origin = request.headers.origin;
       const clientOrigin = new URL(config.CLIENT_URL).origin;
+      const adminOrigin = config.ADMIN_CLIENT_URL
+        ? new URL(config.ADMIN_CLIENT_URL).origin
+        : clientOrigin;
+      const path = request.url.split('?')[0] ?? '';
+      const expectedOrigin = path.startsWith('/api/admin/')
+        ? adminOrigin
+        : clientOrigin;
       reply.header('Vary', 'Origin');
-      if (origin === clientOrigin) {
+      if (origin === expectedOrigin) {
         reply.header('Access-Control-Allow-Origin', origin);
         reply.header('Access-Control-Allow-Credentials', 'true');
       }
@@ -87,7 +94,7 @@ export async function createApp(
         });
       }
       if (
-        (origin && origin !== clientOrigin) ||
+        (origin && origin !== expectedOrigin) ||
         (request.method !== 'GET' &&
           !origin &&
           !(request.method === 'POST' && request.url === '/api/age/result'))
@@ -99,8 +106,8 @@ export async function createApp(
         );
         return reply.code(403).send({ error: 'This request is not allowed.' });
       }
-      // Credentialed cross-origin REST requests from the single configured UI.
-      // Socket.IO applies the same exact-origin policy to polling and upgrades.
+      // REST distinguishes the operator console from the public UI. Socket.IO
+      // remains exclusive to the public UI because the admin has no realtime use.
       if (request.method === 'OPTIONS') {
         const method = request.headers['access-control-request-method'];
         const headers = request.headers['access-control-request-headers'];

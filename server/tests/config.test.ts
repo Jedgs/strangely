@@ -22,6 +22,9 @@ describe('environment safety', () => {
     expect(() => readConfig({ ...base, CLIENT_URL: 'https://[' })).toThrow(
       'Invalid configuration',
     );
+    expect(() =>
+      readConfig({ ...base, ADMIN_CLIENT_URL: 'https://example.com/admin' }),
+    ).toThrow('Invalid configuration');
   });
   it('requires secrets without exposing their input', () => {
     expect(() => readConfig({ ...base, SESSION_SECRET: 'private' })).toThrow(
