@@ -53,6 +53,9 @@ export default defineConfig(({ command, mode }) => {
         'Content-Security-Policy': "frame-ancestors 'none'",
       },
       host: '127.0.0.1',
+      // The local Vite server is only exposed through an authenticated HTTPS
+      // tunnel during development; never enable this for the production build.
+      allowedHosts: ['.ngrok-free.dev'],
       port: 5173,
       strictPort: true,
       proxy: {
