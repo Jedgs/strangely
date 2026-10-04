@@ -240,6 +240,9 @@
   width: 23px;
   height: 23px;
 }
+.room-page .room-notice > div {
+  min-width: 0;
+}
 .room-page .room-notice strong {
   font-size: 12px;
 }

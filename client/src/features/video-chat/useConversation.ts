@@ -204,7 +204,7 @@ export function useConversation() {
     socket.on('queue:waiting', () => {
       if (streamRef.current) {
         setState('searching');
-        setMessage('Looking for someone to say hello to…');
+        setMessage('Looking for someone to say hello to.');
       }
     });
     const failPeer = (text: string) => {
