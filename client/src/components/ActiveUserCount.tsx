@@ -2,7 +2,9 @@ import { useEffect, useState } from 'react';
 import { getPresence } from '../services/api';
 import { Icon } from './Icon';
 
-const REFRESH_INTERVAL = 15_000;
+// This is informational only, so polling once per minute avoids keeping every
+// landing-page visitor on a frequent API request.
+const REFRESH_INTERVAL = 60_000;
 
 export function ActiveUserCount() {
   const [count, setCount] = useState<number | null>(null);
@@ -56,7 +58,7 @@ export function ActiveUserCount() {
       className={`active-user-count ${count !== null ? 'is-live' : ''}`}
       role="status"
       aria-atomic="true"
-      title="Users currently connected to Strangely chat. Updates every 15 seconds."
+      title="Users currently connected to Strangely chat. Updates every minute."
     >
       <span className="presence-dot" aria-hidden="true" />
       <Icon name="users" />

@@ -35,6 +35,8 @@ interface SocketData {
   pending: number;
   serial: Promise<void>;
   connectedAt: string;
+  lastAuthorizationAt: number;
+  lastHeartbeatAt: number;
   stage: 'ready' | 'waiting' | 'matched';
   country: string | null;
   audit: AuditService;
@@ -142,6 +144,8 @@ export function registerRealtime(
   audit: AuditService,
 ): ChatServer {
   const origin = new URL(config.CLIENT_URL).origin;
+  const HEARTBEAT_INTERVAL_MS = 30_000;
+  const AUTHORIZATION_REFRESH_MS = 60_000;
   const connectionBudget = new TrafficBudget(30, 0.5);
   let pendingAuthentications = 0;
   const io: ChatServer = new Server(app.server, {
@@ -179,21 +183,40 @@ export function registerRealtime(
     config,
     connections,
     async authorize(socket) {
-      const session = await sessions.authenticate(socket.data.token);
-      if (session.id !== socket.data.session.id)
+      const now = Date.now();
+      if (socket.data.session.expiresAt <= now)
         throw new ServiceError(
           'SESSION_EXPIRED',
           'Your session has expired. Please start again.',
           401,
         );
-      await bans.assertAllowed(
-        session.ipRef,
-        session.sessionRef,
-        socket.data.networkRef,
-      );
-      const expired = await store.heartbeat(session.id, socket.id);
-      context.ended(socket, expired, 'expired');
-      return session;
+      if (
+        now - socket.data.lastAuthorizationAt >= AUTHORIZATION_REFRESH_MS
+      ) {
+        const session = await sessions.authenticate(socket.data.token);
+        if (session.id !== socket.data.session.id)
+          throw new ServiceError(
+            'SESSION_EXPIRED',
+            'Your session could not be renewed. Please reconnect.',
+            401,
+          );
+        await bans.assertAllowed(
+          session.ipRef,
+          session.sessionRef,
+          socket.data.networkRef,
+        );
+        socket.data.session = session;
+        socket.data.lastAuthorizationAt = now;
+      }
+      if (now - socket.data.lastHeartbeatAt >= HEARTBEAT_INTERVAL_MS) {
+        const expired = await store.heartbeat(
+          socket.data.session.id,
+          socket.id,
+        );
+        socket.data.lastHeartbeatAt = now;
+        context.ended(socket, expired, 'expired');
+      }
+      return socket.data.session;
     },
     ended(socket, match, reason) {
       if (!match) return;
@@ -255,13 +278,16 @@ export function registerRealtime(
           409,
         );
       const ended = await store.claim(session.id, socket.id);
+      const connectedAt = Date.now();
       socket.data = {
         session,
         token: token!,
         networkRef,
         pending: 0,
         serial: Promise.resolve(),
-        connectedAt: new Date().toISOString(),
+        connectedAt: new Date(connectedAt).toISOString(),
+        lastAuthorizationAt: connectedAt,
+        lastHeartbeatAt: connectedAt,
         stage: 'ready',
         country: trustedCountry(config, socket.handshake.headers),
         audit,
@@ -490,7 +516,7 @@ export function registerRealtime(
       .finally(() => {
         ticking = false;
       });
-  }, 15_000);
+  }, HEARTBEAT_INTERVAL_MS);
   heartbeat.unref();
   app.addHook('preClose', (done) => {
     clearInterval(heartbeat);
