@@ -15,7 +15,6 @@ const config = readConfig({
   SESSION_SECRET: 'unit-test-secret-with-at-least-thirty-two-characters',
 });
 const consent = {
-  adult: true,
   terms: true,
   guidelines: true,
   privacy: true,
@@ -38,9 +37,7 @@ function unavailableConnections(): Connections {
 describe('anonymous consent and boundary checks', () => {
   it('requires every consent, correct version and no unexpected fields', () => {
     expect(consentSchema.safeParse(consent).success).toBe(true);
-    expect(consentSchema.safeParse({ ...consent, adult: false }).success).toBe(
-      false,
-    );
+    expect(consentSchema.safeParse({ ...consent, unexpected: true }).success).toBe(false);
     expect(
       consentSchema.safeParse({ ...consent, privacy: undefined }).success,
     ).toBe(false);
@@ -51,7 +48,7 @@ describe('anonymous consent and boundary checks', () => {
       consentSchema.safeParse({ ...consent, verified: true }).success,
     ).toBe(false);
   });
-  it('explicitly identifies the age declaration as self declared', async () => {
+  it('keeps the replaceable assurance boundary explicit', async () => {
     expect(await new SelfDeclaredAgeProvider().assess(consent)).toEqual({
       adultAllowed: true,
       assurance: 'self-declared',

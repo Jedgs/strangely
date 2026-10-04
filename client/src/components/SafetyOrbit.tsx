@@ -28,7 +28,7 @@ const orbits = [
 export function SafetyOrbit() {
   return (
     <div className="safety-orbit" aria-hidden="true">
-      <span>18+</span>
+      <span>Safe</span>
       <span>Private</span>
       <span>Respect</span>
       <svg className="orbit-art" viewBox="0 0 600 600" focusable="false">

@@ -2,14 +2,13 @@ import { useRef, useState, type FormEvent } from 'react';
 import { Dialog } from './Dialog';
 import { Icon } from './Icon';
 import { ConsentProgress } from './ConsentProgress';
-import { AgeVerification } from './AgeVerification';
 import type { LegalDocument } from './LegalDialog';
 
 const confirmations = [
   {
-    id: 'adult',
-    label: 'I confirm I am at least 18 years old.',
-    note: 'Do not involve minors in a call. A declaration alone is not verified age assurance.',
+    id: 'safety',
+    label: 'I will use Strangely respectfully and follow the safety rules.',
+    note: 'Do not share private information, harass anyone, or use the service for illegal or harmful activity.',
   },
   {
     id: 'terms',
@@ -42,21 +41,20 @@ export function ConsentDialog({
   onLegal: (document: LegalDocument) => void;
 }) {
   const [checked, setChecked] = useState<Record<Confirmation, boolean>>({
-    adult: false,
+    safety: false,
     terms: false,
     guidelines: false,
     privacy: false,
   });
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [ageReady, setAgeReady] = useState(false);
   const pending = useRef(false);
   const completed = Object.values(checked).filter(Boolean).length;
   const allChecked = Object.values(checked).every(Boolean);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!allChecked || !ageReady || pending.current) return;
+    if (!allChecked || pending.current) return;
     pending.current = true;
     setSubmitting(true);
     setError(null);
@@ -77,7 +75,7 @@ export function ConsentDialog({
   return (
     <Dialog
       title="Before we say hello."
-      eyebrow="A room for adults · 18+ only"
+      eyebrow="A respectful room for everyone"
       onClose={onClose}
       busy={submitting}
       className="consent-dialog"
@@ -94,7 +92,6 @@ export function ConsentDialog({
         }}
       >
         <ConsentProgress completed={completed} />
-        <AgeVerification onReady={setAgeReady} />
         <fieldset className="consent-checks" disabled={submitting}>
           <legend className="sr-only">Required confirmations</legend>
           {confirmations.map((item) => (
@@ -146,21 +143,17 @@ export function ConsentDialog({
         <button
           className="button button-primary consent-submit"
           type="submit"
-          disabled={!allChecked || !ageReady || submitting}
+          disabled={!allChecked || submitting}
         >
           {submitting
             ? 'Starting your session…'
-            : !ageReady && allChecked
-              ? 'Complete age check to continue'
-              : 'Continue to camera preview'}
+            : 'Continue to camera preview'}
           {!submitting && <Icon name="arrow" />}
         </button>
         <p className="consent-bottom" aria-live="polite">
           {submitting
             ? 'One moment. Your camera and microphone are still off.'
-            : allChecked && !ageReady
-              ? 'Complete the age access check above. Your camera is still off.'
-              : allChecked
+            : allChecked
                 ? 'Next, you choose when to enable your camera and microphone.'
                 : 'Confirm all four items to continue. Your camera is still off.'}
         </p>

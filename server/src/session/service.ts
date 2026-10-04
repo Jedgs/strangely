@@ -44,16 +44,8 @@ export class SessionService {
       ...(challenge ? { challenge } : {}),
       ip,
     });
-    if (
-      !assurance.adultAllowed ||
-      (this.config.AGE_MODE === 'provider' &&
-        assurance.assurance !== 'provider-verified')
-    )
-      throw new ServiceError(
-        'AGE_REQUIRED',
-        'An approved 18+ verification is required before starting a session.',
-        403,
-      );
+    if (!assurance.adultAllowed)
+      throw new ServiceError('SAFETY_REQUIRED', 'This session is not available.', 403);
     const token = randomBytes(32).toString('base64url');
     const session: AnonymousSession = {
       id: randomUUID(),
@@ -83,7 +75,7 @@ export class SessionService {
     if (!token || !/^[A-Za-z0-9_-]{43}$/.test(token))
       throw new ServiceError(
         'SESSION_REQUIRED',
-        'Please confirm your age and consent to continue.',
+        'Please confirm consent to continue.',
         401,
       );
     if (!this.redis.isReady) throw unavailable();
@@ -97,15 +89,6 @@ export class SessionService {
           401,
         );
       const session = JSON.parse(raw) as AnonymousSession;
-      if (
-        this.config.AGE_MODE === 'provider' &&
-        session.assurance !== 'provider-verified'
-      )
-        throw new ServiceError(
-          'AGE_REQUIRED',
-          'Please complete verified 18+ access before continuing.',
-          403,
-        );
       if (
         session.expiresAt <= Date.now() ||
         session.consentVersion !== CONSENT_VERSION

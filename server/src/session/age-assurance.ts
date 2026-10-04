@@ -12,11 +12,13 @@ export interface AgeAssuranceProvider {
   ): Promise<AgeAssuranceResult>;
 }
 
-// Consent is an adult declaration; this provider does not establish anyone's age.
+// General-audience mode has no age claim. A replaceable assurance boundary is
+// retained for any future regulated room without trusting client input.
 export class SelfDeclaredAgeProvider implements AgeAssuranceProvider {
   async assess(
     consent: z.infer<typeof consentSchema>,
   ): Promise<AgeAssuranceResult> {
-    return { adultAllowed: consent.adult, assurance: 'self-declared' };
+    void consent;
+    return { adultAllowed: true, assurance: 'self-declared' };
   }
 }

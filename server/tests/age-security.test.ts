@@ -21,7 +21,6 @@ const config = readConfig({
   AGE_WEBHOOK_SECRET: 'test-only-webhook-secret-at-least-thirty-two-characters',
 });
 const consent = {
-  adult: true,
   terms: true,
   guidelines: true,
   privacy: true,

@@ -35,8 +35,8 @@ const documents: Record<
     title: 'A few things to agree on.',
     sections: [
       {
-        heading: 'Adults only',
-        text: 'You must be at least 18 years old to use Strangely. Checking a box is a self-declaration, not verified age assurance. Do not use the service if you are under 18.',
+        heading: 'Use responsibly',
+        text: 'Strangely is a general-audience conversation service. Follow the safety rules, keep personal information private, and leave or report any conversation that feels unsafe. Do not use the service for illegal, harmful, or exploitative activity.',
       },
       {
         heading: 'You are in control',

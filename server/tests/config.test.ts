@@ -68,4 +68,12 @@ describe('environment safety', () => {
       readConfig({ ...base, ICE_TRANSPORT_POLICY: 'relay' }),
     ).toThrow();
   });
+  it('requires secure cookies when SameSite=None is selected', () => {
+    expect(() =>
+      readConfig({ ...base, COOKIE_SAMESITE: 'none', COOKIE_SECURE: 'false' }),
+    ).toThrow('SameSite=None cookies require COOKIE_SECURE=true');
+    expect(() =>
+      readConfig({ ...base, COOKIE_SAMESITE: 'none', COOKIE_SECURE: 'true' }),
+    ).not.toThrow();
+  });
 });

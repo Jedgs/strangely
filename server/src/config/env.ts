@@ -118,6 +118,12 @@ const schema = z
     COOKIE_SAMESITE: z.enum(['strict', 'none']).default('strict'),
   })
   .superRefine((value, ctx) => {
+    if (value.COOKIE_SAMESITE === 'none' && !value.COOKIE_SECURE)
+      ctx.addIssue({
+        code: 'custom',
+        path: ['COOKIE_SECURE'],
+        message: 'SameSite=None cookies require COOKIE_SECURE=true',
+      });
     if (value.TRUST_EDGE_COUNTRY && !configuredSecret(value.EDGE_GEO_SECRET))
       ctx.addIssue({
         code: 'custom',
@@ -143,14 +149,13 @@ const schema = z
       });
     if (
       value.NODE_ENV === 'production' &&
-      (value.AGE_MODE !== 'provider' ||
-        !value.ADMIN_PASSWORD_HASH ||
+      (!value.ADMIN_PASSWORD_HASH ||
         !value.ADMIN_TOTP_SECRET)
     )
       ctx.addIssue({
         code: 'custom',
         message:
-          'Public launch is blocked: configure provider age verification and administrator password plus MFA',
+          'Public launch is blocked: configure administrator password plus MFA',
       });
     if (
       value.FACE_WARNING_MS >= value.FACE_PAUSE_MS ||

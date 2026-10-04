@@ -222,7 +222,7 @@ export function LandingPage({
               <div className="hero-copy">
                 <p className="live-pill">
                   <span /> Live <b>•</b> Random <b>•</b> Real People <b>•</b>{' '}
-                  18+ Only
+                  Safety first
                 </p>
                 <h1 id="hero-title">
                   Meet New People
@@ -356,9 +356,8 @@ export function LandingPage({
                   conversation crosses a line.
                 </p>
                 <p className="safety-disclosure">
-                  Adults only. Never involve a child in a call. Face presence
-                  checks cannot establish age or guarantee child detection.
-                  Verified 18+ access is required for public launch. Suspicious
+                  General-audience service. Face presence checks are only a
+                  local visibility aid and cannot identify people. Suspicious
                   technical activity and reports may be reviewed by the
                   operator.
                 </p>

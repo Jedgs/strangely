@@ -57,7 +57,6 @@ export const createSession = () =>
   request<SessionInfo>('/api/session', {
     method: 'POST',
     body: JSON.stringify({
-      adult: true,
       terms: true,
       guidelines: true,
       privacy: true,

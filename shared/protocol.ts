@@ -1,9 +1,8 @@
 import { z } from 'zod';
 
-export const CONSENT_VERSION = '2026-10-03';
+export const CONSENT_VERSION = '2026-10-04-general';
 export const consentSchema = z
   .object({
-    adult: z.literal(true),
     terms: z.literal(true),
     guidelines: z.literal(true),
     privacy: z.literal(true),
