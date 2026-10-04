@@ -40,7 +40,7 @@ Create two Vercel projects from the same GitHub repository. They use the same `c
 | Strangely app      | `app.your-domain.com`   | `public`       | Consumer landing, consent and chat; `/developer` is not selected        |
 | Strangely operator | `admin.your-domain.com` | `admin`        | Operator console only; every route renders the protected sign-in screen |
 
-Set `VITE_API_URL` on both projects to the same HTTPS API origin. The `admin` surface is a separate deployment boundary and hostname, but its API access is still protected by the backend admin cookie and MFA. Do not treat the separate hostname as authorization by itself. In Vercel, create the second project with **Import Git Repository**, set Root Directory to `client`, enable **Include source files outside Root Directory**, and add `VITE_SURFACE=admin` before the first deployment. The public project uses `VITE_SURFACE=public`.
+Set `VITE_API_URL` on the public project to the HTTPS API origin. The `admin` surface is a separate deployment boundary and hostname, but its API access is still protected by the backend admin cookie and MFA. Do not treat the separate hostname as authorization by itself. The admin project uses its own HTTPS origin as `VITE_API_URL`; its `/api/admin/*` requests are rewritten to the backend by `client/vercel.json`, preserving the strict host-only admin cookie. In Vercel, create the second project with **Import Git Repository**, set Root Directory to `client`, enable **Include source files outside Root Directory**, and add `VITE_SURFACE=admin` before the first deployment. The public project uses `VITE_SURFACE=public`.
 
 Import the GitHub repository and select:
 
