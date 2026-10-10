@@ -10,10 +10,17 @@ const audioConstraints: MediaTrackConstraints = {
 };
 
 function videoConstraints(facingMode: CameraFacingMode): MediaTrackConstraints {
+  const portraitViewport =
+    typeof window !== 'undefined' &&
+    typeof window.matchMedia === 'function' &&
+    window.matchMedia('(orientation: portrait)').matches;
   return {
     width: { ideal: 640 },
     height: { ideal: 480 },
     frameRate: { ideal: 24, max: 30 },
+    // Ask phones for a native portrait frame. This avoids iOS returning a
+    // landscape-sized stream with black side bars after switching cameras.
+    aspectRatio: { ideal: portraitViewport ? 9 / 16 : 4 / 3 },
     // `ideal`, rather than `exact`, lets a browser use a compatible camera if
     // it does not expose a distinct front/rear lens (common on mobile WebKit).
     facingMode: { ideal: facingMode },

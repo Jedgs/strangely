@@ -295,7 +295,7 @@ export function ChatRoom({
             autoPlay
             playsInline
             muted
-            className={`local-video ${cameraOff ? 'camera-is-off' : ''}`}
+            className={`local-video camera-facing-${conversation.cameraFacing} ${cameraOff ? 'camera-is-off' : ''}`}
             aria-label="Your private camera preview"
           />
           {(!stream || cameraOff) && (
