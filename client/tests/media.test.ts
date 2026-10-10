@@ -11,7 +11,10 @@ describe('browser media acquisition', () => {
     vi.stubGlobal('navigator', { mediaDevices: { getUserMedia } });
     await expect(acquireMedia()).resolves.toBe(media);
     expect(getUserMedia).toHaveBeenCalledWith({
-      video: expect.objectContaining({ facingMode: { ideal: 'user' } }),
+      video: expect.objectContaining({
+        facingMode: { ideal: 'user' },
+        aspectRatio: { ideal: 4 / 3 },
+      }),
       audio: { echoCancellation: true, noiseSuppression: true },
     });
   });
@@ -21,7 +24,10 @@ describe('browser media acquisition', () => {
     vi.stubGlobal('navigator', { mediaDevices: { getUserMedia } });
     await expect(acquireMedia('environment')).resolves.toBe(media);
     expect(getUserMedia).toHaveBeenCalledWith({
-      video: expect.objectContaining({ facingMode: { ideal: 'environment' } }),
+      video: expect.objectContaining({
+        facingMode: { ideal: 'environment' },
+        aspectRatio: { ideal: 4 / 3 },
+      }),
       audio: { echoCancellation: true, noiseSuppression: true },
     });
   });
