@@ -1,4 +1,4 @@
-export function coverVideoFrame(
+export function cropVideoFrame(
   videoWidth: number,
   videoHeight: number,
   frameWidth: number,
@@ -6,13 +6,14 @@ export function coverVideoFrame(
 ) {
   if (!videoWidth || !videoHeight || !frameWidth || !frameHeight) return null;
 
-  const scale = Math.max(frameWidth / videoWidth, frameHeight / videoHeight);
-  const width = videoWidth * scale;
-  const height = videoHeight * scale;
+  const sourceRatio = videoWidth / videoHeight;
+  const frameRatio = frameWidth / frameHeight;
+  const width = sourceRatio > frameRatio ? videoHeight * frameRatio : videoWidth;
+  const height = sourceRatio > frameRatio ? videoHeight : videoWidth / frameRatio;
   return {
     width,
     height,
-    left: (frameWidth - width) / 2,
-    top: (frameHeight - height) / 2,
+    left: (videoWidth - width) / 2,
+    top: (videoHeight - height) / 2,
   };
 }

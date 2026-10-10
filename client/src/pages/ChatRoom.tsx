@@ -13,7 +13,7 @@ import { ConversationControls } from '../components/ConversationControls';
 import { RoomNotice } from '../components/RoomNotice';
 import { RoomActions } from '../components/RoomActions';
 import { Dialog } from '../components/Dialog';
-import { coverVideoFrame } from '../features/camera/previewFraming';
+import { cropVideoFrame } from '../features/camera/previewFraming';
 
 const stageContent: Record<
   ConversationState,
@@ -109,55 +109,91 @@ export function ChatRoom({
   const keyboardNavigation = useRef(false);
   const headingRef = useRef<HTMLHeadingElement>(null);
   const localStageRef = useRef<HTMLElement>(null);
+  const localCanvasRef = useRef<HTMLCanvasElement>(null);
+  const previousFacing = useRef(conversation.cameraFacing);
+  // Enable the canvas on any touch device from the start — mobile WebKit can
+  // distort object-fit: cover even on the very first camera stream, not only
+  // after a lens flip.
+  const [canvasEnabled, setCanvasEnabled] = useState(
+    () => 'ontouchstart' in window || navigator.maxTouchPoints > 0,
+  );
+  const [renderedStream, setRenderedStream] = useState<MediaStream | null>(null);
   const { state, stream, cameraOff, micMuted } = conversation;
   useEffect(() => {
+    if (previousFacing.current !== conversation.cameraFacing)
+      setCanvasEnabled(true);
+    previousFacing.current = conversation.cameraFacing;
+  }, [conversation.cameraFacing]);
+  useEffect(() => {
+    if (!canvasEnabled || !stream || cameraOff) return;
     const video = conversation.localVideoRef.current;
+    const canvas = localCanvasRef.current;
     const stage = localStageRef.current;
-    if (!video || !stage) return;
+    const context = canvas?.getContext('2d');
+    if (!video || !canvas || !stage || !context) return;
 
-    // Safari can render a newly selected camera as if object-fit were
-    // "contain". Size the video itself to cover the stable stage instead.
-    // The source dimensions can change again after the first frame, so keep
-    // listening for metadata and intrinsic-size changes on every capture.
-    const updateFraming = () => {
-      if (!stream || video.srcObject !== stream) return;
-      const size = coverVideoFrame(
+    // After a lens switch, WebKit can render object-fit incorrectly. Drawing
+    // a centered source crop keeps one scale in both directions, so the
+    // preview fills its stage without distorting the camera image.
+    let frame = 0;
+    let lastDraw = 0;
+    let ready = false;
+    const draw = (now: number) => {
+      frame = window.requestAnimationFrame(draw);
+      if (now - lastDraw < 1000 / 24 || video.srcObject !== stream) return;
+      lastDraw = now;
+      if (video.readyState < HTMLMediaElement.HAVE_CURRENT_DATA) return;
+      const width = stage.clientWidth;
+      const height = stage.clientHeight;
+      const crop = cropVideoFrame(
         video.videoWidth,
         video.videoHeight,
-        stage.clientWidth,
-        stage.clientHeight,
+        width,
+        height,
       );
-      video.style.width = size ? `${size.width}px` : '';
-      video.style.height = size ? `${size.height}px` : '';
-      video.style.left = size ? `${size.left}px` : '';
-      video.style.top = size ? `${size.top}px` : '';
-      video.style.objectFit = size ? 'fill' : '';
+      if (!crop) return;
+      const pixelRatio = Math.min(window.devicePixelRatio || 1, 2);
+      const pixelWidth = Math.round(width * pixelRatio);
+      const pixelHeight = Math.round(height * pixelRatio);
+      if (canvas.width !== pixelWidth) canvas.width = pixelWidth;
+      if (canvas.height !== pixelHeight) canvas.height = pixelHeight;
+      try {
+        context.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
+        context.save();
+        if (conversation.cameraFacing === 'user') {
+          context.translate(width, 0);
+          context.scale(-1, 1);
+        }
+        context.drawImage(
+          video,
+          crop.left,
+          crop.top,
+          crop.width,
+          crop.height,
+          0,
+          0,
+          width,
+          height,
+        );
+        context.restore();
+        if (!ready) {
+          ready = true;
+          setRenderedStream(stream);
+        }
+      } catch {
+        context.restore();
+        // Keep the native video visible if this browser cannot draw the frame.
+      }
     };
-    // Do not keep dimensions from the previous lens while the new stream is
-    // waiting for its first frame.
-    video.style.width = '';
-    video.style.height = '';
-    video.style.left = '';
-    video.style.top = '';
-    video.style.objectFit = '';
-    video.addEventListener('loadedmetadata', updateFraming);
-    video.addEventListener('resize', updateFraming);
-    video.addEventListener('playing', updateFraming);
-    const observer =
-      typeof ResizeObserver === 'undefined'
-        ? null
-        : new ResizeObserver(updateFraming);
-    observer?.observe(stage);
-    window.addEventListener('resize', updateFraming);
-    updateFraming();
-    return () => {
-      observer?.disconnect();
-      window.removeEventListener('resize', updateFraming);
-      video.removeEventListener('loadedmetadata', updateFraming);
-      video.removeEventListener('resize', updateFraming);
-      video.removeEventListener('playing', updateFraming);
-    };
-  }, [conversation.localVideoRef, stream]);
+    frame = window.requestAnimationFrame(draw);
+    return () => window.cancelAnimationFrame(frame);
+  }, [
+    cameraOff,
+    canvasEnabled,
+    conversation.cameraFacing,
+    conversation.localVideoRef,
+    stream,
+  ]);
   const content = stageContent[state];
   const error = actionError ?? conversation.error;
   const keepChromeVisible = Boolean(
@@ -348,6 +384,11 @@ export function ChatRoom({
             muted
             className={`local-video camera-facing-${conversation.cameraFacing} ${cameraOff ? 'camera-is-off' : ''}`}
             aria-label="Your private camera preview"
+          />
+          <canvas
+            ref={localCanvasRef}
+            className={`local-canvas ${canvasEnabled && renderedStream === stream && !cameraOff ? 'is-ready' : ''}`}
+            aria-hidden="true"
           />
           {(!stream || cameraOff) && (
             <div className="local-placeholder">

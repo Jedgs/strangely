@@ -56,6 +56,10 @@ function RoomPreview() {
       context.fillStyle = '#fff';
       context.font = 'bold 32px sans-serif';
       context.fillText(cameraFacing === 'user' ? 'FRONT' : 'BACK', 48, 80);
+      context.beginPath();
+      context.arc(canvas.width / 2, canvas.height / 2, 70, 0, Math.PI * 2);
+      context.lineWidth = 8;
+      context.stroke();
     };
     const source = canvas.captureStream(12);
     draw();
