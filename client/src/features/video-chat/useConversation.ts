@@ -566,6 +566,25 @@ export function useConversation() {
         track.stop();
       });
     };
+    const fullyReleaseCurrentVideo = async () => {
+      // Stopping a track alone is not enough on iOS WebKit. The media element
+      // can retain the old source briefly and make the replacement request
+      // look as if another app is holding the camera.
+      const preview = localVideoRef.current;
+      if (preview?.srcObject === current) {
+        preview.pause();
+        preview.srcObject = null;
+      }
+      // Make the previous stream non-current before its video track ends, so
+      // the normal disconnect handler cannot end the whole conversation.
+      const audioOnly = new MediaStream(current.getAudioTracks());
+      streamRef.current = audioOnly;
+      setStream(audioOnly);
+      retireCurrentVideo();
+      // Let Safari/Chrome Mobile release the physical camera before asking for
+      // the next facing mode. The microphone remains live throughout.
+      await new Promise<void>((resolve) => window.setTimeout(resolve, 180));
+    };
     const applyCamera = async (
       camera: MediaStream,
       facing: CameraFacingMode,
@@ -643,8 +662,9 @@ export function useConversation() {
       } catch (failure) {
         if (!isCameraBusyError(failure)) throw failure;
         // Safari and some Chrome Android devices need the active video track
-        // released before they will open the other physical camera.
-        retireCurrentVideo();
+        // and its preview detached before they will open the other physical
+        // camera.
+        await fullyReleaseCurrentVideo();
         try {
           camera = await acquireCamera(nextFacing);
         } catch (retryFailure) {
