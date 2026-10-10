@@ -115,7 +115,14 @@ describe('peer lifecycle', () => {
     expect(clonedTrack.stop).toHaveBeenCalledOnce();
     expect(originalTrack.stop).not.toHaveBeenCalled();
   });
-  it('replaces only the outbound clone when the local camera changes', async () => {
+  it('releases the outbound camera clone before a mobile camera handoff', async () => {
+    const sender = FakePeer.current.addTrack.mock.results[0]!.value;
+    await transport.detachLocalMedia();
+    expect(sender.replaceTrack).toHaveBeenCalledWith(null);
+    expect(clonedTrack.stop).toHaveBeenCalledOnce();
+    expect(originalTrack.stop).not.toHaveBeenCalled();
+  });
+  it('restores an outbound clone after a mobile camera handoff', async () => {
     const replacementClone = { kind: 'video', enabled: true, stop: vi.fn() };
     const replacement = {
       kind: 'video',
@@ -124,24 +131,29 @@ describe('peer lifecycle', () => {
       clone: () => replacementClone,
     } as unknown as MediaStreamTrack;
     const sender = FakePeer.current.addTrack.mock.results[0]!.value;
-    await transport.replaceVideoTrack(replacement);
-    expect(sender.replaceTrack).toHaveBeenCalledTimes(1);
-    expect(sender.replaceTrack).toHaveBeenCalledWith(replacementClone);
+    await transport.detachLocalMedia();
+    await transport.replaceMediaTracks({
+      getTracks: () => [replacement],
+    } as unknown as MediaStream);
+    expect(sender.replaceTrack).toHaveBeenLastCalledWith(replacementClone);
     expect(clonedTrack.stop).toHaveBeenCalledOnce();
     expect(replacement.stop).not.toHaveBeenCalled();
   });
-  it('keeps the current outbound camera when a replacement is rejected', async () => {
+  it('does not retain a candidate track when restoration is rejected', async () => {
     const replacement = {
       kind: 'video',
       enabled: true,
       clone: () => ({ kind: 'video', enabled: true, stop: vi.fn() }),
     } as unknown as MediaStreamTrack;
     const sender = FakePeer.current.addTrack.mock.results[0]!.value;
+    await transport.detachLocalMedia();
     sender.replaceTrack.mockRejectedValueOnce(new Error('unsupported'));
-    await expect(transport.replaceVideoTrack(replacement)).rejects.toThrow(
-      'unsupported',
-    );
-    expect(clonedTrack.stop).not.toHaveBeenCalled();
+    await expect(
+      transport.replaceMediaTracks({
+        getTracks: () => [replacement],
+      } as unknown as MediaStream),
+    ).rejects.toThrow('unsupported');
+    expect(clonedTrack.stop).toHaveBeenCalledOnce();
   });
   it('times out a connection that never completes', () => {
     vi.advanceTimersByTime(25000);

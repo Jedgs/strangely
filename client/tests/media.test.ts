@@ -1,9 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import {
-  acquireCamera,
-  acquireMedia,
-  isCameraBusyError,
-} from '../src/features/camera/media';
+import { acquireMedia } from '../src/features/camera/media';
 
 const media = {} as MediaStream;
 
@@ -20,13 +16,13 @@ describe('browser media acquisition', () => {
     });
   });
 
-  it('requests only a compatible back-camera video track when flipping', async () => {
+  it('requests a compatible back camera and microphone as one capture', async () => {
     const getUserMedia = vi.fn().mockResolvedValue(media);
     vi.stubGlobal('navigator', { mediaDevices: { getUserMedia } });
-    await expect(acquireCamera('environment')).resolves.toBe(media);
+    await expect(acquireMedia('environment')).resolves.toBe(media);
     expect(getUserMedia).toHaveBeenCalledWith({
       video: expect.objectContaining({ facingMode: { ideal: 'environment' } }),
-      audio: false,
+      audio: { echoCancellation: true, noiseSuppression: true },
     });
   });
 
@@ -38,18 +34,10 @@ describe('browser media acquisition', () => {
       )
       .mockResolvedValueOnce(media);
     vi.stubGlobal('navigator', { mediaDevices: { getUserMedia } });
-    await expect(acquireCamera('environment')).resolves.toBe(media);
+    await expect(acquireMedia('environment')).resolves.toBe(media);
     expect(getUserMedia).toHaveBeenLastCalledWith({
       video: true,
-      audio: false,
+      audio: { echoCancellation: true, noiseSuppression: true },
     });
-  });
-
-  it('recognizes a camera-busy failure that can be retried after a flip handoff', () => {
-    const error = new Error('camera busy', {
-      cause: new DOMException('busy', 'NotReadableError'),
-    });
-    expect(isCameraBusyError(error)).toBe(true);
-    expect(isCameraBusyError(new Error('permission denied'))).toBe(false);
   });
 });
