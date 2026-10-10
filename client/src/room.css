@@ -19,6 +19,7 @@
   min-height: 0;
 }
 .room-page .local-stage .local-video {
+  position: absolute;
   top: 0;
   left: 0;
   display: block;
@@ -28,6 +29,22 @@
   max-height: none;
   object-fit: cover;
   object-position: center;
+}
+.room-page .local-canvas {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  pointer-events: none;
+}
+.room-page .local-canvas.is-ready {
+  opacity: 1;
+}
+.room-page .local-stage .pane-caption,
+.room-page .local-stage .local-placeholder {
+  z-index: 2;
 }
 .room-page .local-stage .camera-facing-user {
   transform: scaleX(-1);
