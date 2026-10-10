@@ -1,6 +1,6 @@
 // Development-only visual fixture; Vite's production entry is index.html.
 // No session, consent, camera, microphone, or remote participant is used here.
-import { useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { ChatRoom } from './pages/ChatRoom';
 import { Dialog } from './components/Dialog';
@@ -15,6 +15,8 @@ import './room.css';
 const requestedState = new URLSearchParams(location.search).get('state');
 const progressPreview =
   new URLSearchParams(location.search).get('view') === 'progress';
+const cameraPreview =
+  new URLSearchParams(location.search).get('camera') === 'on';
 const state: ConversationState =
   requestedState === 'error'
     ? 'error'
@@ -28,6 +30,7 @@ const action = async () => {};
 
 function RoomPreview() {
   const localVideoRef = useRef<HTMLVideoElement | null>(null);
+  const stream = useMemo(() => (cameraPreview ? new MediaStream() : null), []);
   const conversation: ConversationController = {
     state,
     message:
@@ -41,12 +44,13 @@ function RoomPreview() {
         ? 'We could not reach Strangely. Please check your connection and try again in a moment.'
         : null,
     session: null,
-    stream: null,
+    stream,
     remoteStream: null,
     localVideoRef,
     faceStatus: 'present',
     micMuted: false,
     cameraOff: false,
+    cameraFacing: 'user',
     socketReady: state !== 'error',
     busy: false,
     matchId: state === 'connected' ? 'visual-fixture' : null,
@@ -60,6 +64,7 @@ function RoomPreview() {
     block: action,
     toggleMute: noop,
     toggleCamera: noop,
+    switchCamera: action,
     leave: action,
   };
   return (

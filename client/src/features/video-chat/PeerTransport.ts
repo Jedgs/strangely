@@ -19,7 +19,9 @@ export class PeerTransport {
   private readonly timeout: ReturnType<typeof setTimeout>;
   private lostTimeout: ReturnType<typeof setTimeout> | undefined;
   private answering = false;
-  private readonly outboundVideo: MediaStreamTrack[] = [];
+  private readonly outboundVideo = new Set<MediaStreamTrack>();
+  private videoSender: RTCRtpSender | null = null;
+  private videoEnabled = true;
 
   constructor(
     readonly matchId: string,
@@ -33,8 +35,11 @@ export class PeerTransport {
     });
     stream.getTracks().forEach((track) => {
       const outbound = track.kind === 'video' ? track.clone() : track;
-      if (outbound.kind === 'video') this.outboundVideo.push(outbound);
-      this.peer.addTrack(outbound, stream);
+      const sender = this.peer.addTrack(outbound, stream);
+      if (outbound.kind === 'video') {
+        this.outboundVideo.add(outbound);
+        this.videoSender ??= sender;
+      }
     });
     this.peer.onicecandidate = (event) => {
       if (this.active && event.candidate) {
@@ -163,10 +168,27 @@ export class PeerTransport {
     this.candidates = [];
     this.peer.close();
     this.outboundVideo.forEach((track) => track.stop());
+    this.outboundVideo.clear();
   }
   setVideoEnabled(enabled: boolean) {
+    this.videoEnabled = enabled;
     this.outboundVideo.forEach((track) => {
       track.enabled = enabled;
     });
+  }
+
+  /** Keep the peer connection alive while replacing a local camera source. */
+  async replaceVideoTrack(track: MediaStreamTrack): Promise<void> {
+    if (!this.active || !this.videoSender) return;
+    const outbound = track.clone();
+    outbound.enabled = this.videoEnabled;
+    await this.videoSender.replaceTrack(outbound);
+    if (!this.active) {
+      outbound.stop();
+      return;
+    }
+    this.outboundVideo.forEach((previous) => previous.stop());
+    this.outboundVideo.clear();
+    this.outboundVideo.add(outbound);
   }
 }

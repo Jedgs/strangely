@@ -12,10 +12,22 @@ export function ConversationControls({
   onEnd: () => void;
   ending: boolean;
 }) {
-  const { state, stream, faceStatus, cameraOff, busy, socketReady, matchId } =
-    conversation;
+  const {
+    state,
+    stream,
+    faceStatus,
+    cameraOff,
+    cameraFacing,
+    busy,
+    socketReady,
+    matchId,
+  } = conversation;
   const canSearch = Boolean(
-    stream && faceStatus === 'present' && !cameraOff && socketReady && !busy,
+    stream &&
+    (faceStatus === 'present' || faceStatus === 'unavailable') &&
+    !cameraOff &&
+    socketReady &&
+    !busy,
   );
   const hasMatch = Boolean(
     matchId && ['connected', 'connecting'].includes(state),
@@ -26,9 +38,7 @@ export function ConversationControls({
     'connecting',
     'reconnecting',
   ].includes(state);
-  const restart =
-    cameraOff ||
-    (state === 'error' && (!socketReady || faceStatus === 'unavailable'));
+  const restart = cameraOff || (state === 'error' && !socketReady);
   const searchState =
     ['preview', 'peer-left', 'error'].includes(state) && stream && !restart;
   return (
@@ -50,6 +60,22 @@ export function ConversationControls({
           </button>
           <span aria-hidden="true">{ending ? 'Ending...' : 'End'}</span>
         </div>
+        {stream && (
+          <div className="call-action">
+            <button
+              className="switch-camera-button"
+              type="button"
+              aria-label={`Switch to ${cameraFacing === 'user' ? 'back' : 'front'} camera`}
+              disabled={ending || busy || spinning}
+              onClick={() => {
+                void onAction(conversation.switchCamera);
+              }}
+            >
+              <Icon name="switch-camera" />
+            </button>
+            <span aria-hidden="true">Flip</span>
+          </div>
+        )}
         {hasMatch ? (
           <div className="call-action">
             <button

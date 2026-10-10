@@ -7,6 +7,7 @@ export type IconName =
   | 'globe'
   | 'camera'
   | 'camera-off'
+  | 'switch-camera'
   | 'mic'
   | 'mic-off'
   | 'next'
@@ -46,6 +47,12 @@ const paths: Record<IconName, ReactNode> = {
   ),
   'camera-off': (
     <path d="M16 10V7a2 2 0 0 0-2-2H9M5 5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h9a2 2 0 0 0 2-2v-3m0-4 5-3v10l-5-3M3 3l18 18" />
+  ),
+  'switch-camera': (
+    <>
+      <path d="M4 7h11l-3-3M20 17H9l3 3" />
+      <path d="M15 7a6 6 0 0 1 4 5M9 17a6 6 0 0 1-4-5" />
+    </>
   ),
   mic: (
     <>

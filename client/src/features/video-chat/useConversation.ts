@@ -9,7 +9,12 @@ import type {
 } from '../../../../shared/protocol';
 import { createSession, getSession, endSession } from '../../services/api';
 import { API_ORIGIN } from '../../services/backend';
-import { acquireMedia, releaseMedia } from '../camera/media';
+import {
+  acquireCamera,
+  acquireMedia,
+  releaseMedia,
+  type CameraFacingMode,
+} from '../camera/media';
 import { useFacePresence } from '../face-presence/useFacePresence';
 import { PeerTransport } from './PeerTransport';
 
@@ -53,6 +58,7 @@ export function useConversation() {
   const [busy, setBusy] = useState(false);
   const [micMuted, setMicMuted] = useState(false);
   const [cameraOff, setCameraOff] = useState(false);
+  const [cameraFacing, setCameraFacing] = useState<CameraFacingMode>('user');
   const [matchId, setMatchId] = useState<string | null>(null);
   const [lastMatchId, setLastMatchId] = useState<string | null>(null);
   const socketRef = useRef<Connection | null>(null);
@@ -86,6 +92,7 @@ export function useConversation() {
     setStream(null);
     setMicMuted(false);
     setCameraOff(false);
+    setCameraFacing('user');
     setError(null);
     setState('stopped');
     setMessage('You’ve stopped. Your camera and microphone are off.');
@@ -141,19 +148,6 @@ export function useConversation() {
       track.enabled = !cameraOff;
     });
     peerRef.current?.setVideoEnabled(!cameraOff && faceStatus !== 'paused');
-    if (
-      faceStatus === 'unavailable' &&
-      ['searching', 'connecting', 'connected'].includes(stateRef.current)
-    ) {
-      const stopping = stop();
-      const token = generation.current;
-      void stopping.then(() => {
-        if (generation.current === token)
-          setError(
-            'The camera check stopped working. Restart your camera before searching again.',
-          );
-      });
-    }
   }, [faceStatus, cameraOff, stream, stop]);
 
   useEffect(() => {
@@ -388,6 +382,7 @@ export function useConversation() {
       releaseMedia(streamRef.current);
       streamRef.current = media;
       setStream(media);
+      setCameraFacing('user');
       media.getTracks().forEach((track) =>
         track.addEventListener(
           'ended',
@@ -431,7 +426,11 @@ export function useConversation() {
       clearPeer();
       setState('preview');
     }
-    if (!streamRef.current || faceStatus !== 'present' || cameraOff) {
+    if (
+      !streamRef.current ||
+      (faceStatus !== 'present' && faceStatus !== 'unavailable') ||
+      cameraOff
+    ) {
       if (nextMatch && socket?.connected)
         await acknowledged((reply) => socket.emit('queue:stop', {}, reply));
       desiredConversation.current = false;
@@ -541,6 +540,80 @@ export function useConversation() {
   function toggleCamera() {
     setCameraOff((value) => !value);
   }
+  async function switchCamera() {
+    const current = streamRef.current;
+    if (!current || actionBusy.current) return;
+    actionBusy.current = true;
+    setBusy(true);
+    setError(null);
+    const token = ++generation.current;
+    const nextFacing: CameraFacingMode =
+      cameraFacing === 'user' ? 'environment' : 'user';
+    try {
+      const camera = await acquireCamera(nextFacing);
+      const nextVideo = camera.getVideoTracks()[0];
+      if (!nextVideo) {
+        releaseMedia(camera);
+        throw new Error('We could not find a camera to switch to.');
+      }
+      if (token !== generation.current) {
+        releaseMedia(camera);
+        return;
+      }
+      await peerRef.current?.replaceVideoTrack(nextVideo);
+      if (token !== generation.current) {
+        releaseMedia(camera);
+        return;
+      }
+      nextVideo.enabled = !cameraOff;
+      const replacement = new MediaStream([
+        ...current.getAudioTracks(),
+        nextVideo,
+      ]);
+      streamRef.current = replacement;
+      setStream(replacement);
+      setCameraFacing(nextFacing);
+      // The previous stream's ended handler intentionally ignores retired
+      // sources once the replacement is current, so a normal camera flip never
+      // ends a healthy conversation.
+      current.getVideoTracks().forEach((track) => track.stop());
+      replacement.getTracks().forEach((track) =>
+        track.addEventListener(
+          'ended',
+          () => {
+            if (streamRef.current === replacement) {
+              const stopping = stop();
+              const activeToken = generation.current;
+              void stopping.then(() => {
+                if (generation.current === activeToken)
+                  setError(
+                    'Your camera or microphone disconnected. Check your devices and try again.',
+                  );
+              });
+            }
+          },
+          { once: true },
+        ),
+      );
+      setMessage(
+        nextFacing === 'environment'
+          ? 'Using your back camera.'
+          : 'Using your front camera.',
+      );
+    } catch (failure) {
+      if (token === generation.current)
+        setError(
+          failure instanceof Error
+            ? failure.message
+            : 'We could not switch cameras. Please try again.',
+        );
+    } finally {
+      if (token === generation.current) {
+        actionBusy.current = false;
+        setBusy(false);
+      }
+    }
+  }
   async function leave() {
     const sessionToken = sessionRef.current?.sessionToken;
     void stop();
@@ -563,6 +636,7 @@ export function useConversation() {
     faceStatus,
     micMuted,
     cameraOff,
+    cameraFacing,
     socketReady,
     busy,
     matchId,
@@ -576,6 +650,7 @@ export function useConversation() {
     block,
     toggleMute,
     toggleCamera,
+    switchCamera,
     leave,
   };
 }

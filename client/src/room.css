@@ -316,7 +316,8 @@
   text-shadow: 0 1px 4px #000;
 }
 .room-page .end-call-button,
-.room-page .next-call-button {
+.room-page .next-call-button,
+.room-page .switch-camera-button {
   display: grid;
   place-items: center;
   height: 48px;
@@ -336,8 +337,19 @@
   background: #087dff;
   box-shadow: 0 3px 14px #087dff26;
 }
+.room-page .switch-camera-button {
+  width: 48px;
+  border: 1px solid #9ab5ff88;
+  border-radius: 50%;
+  background: #0a1f48df;
+  box-shadow: 0 3px 14px #0004;
+}
+.room-page .switch-camera-button:hover:not(:disabled) {
+  background: #153a7c;
+}
 .room-page .end-call-button svg,
-.room-page .next-call-button svg {
+.room-page .next-call-button svg,
+.room-page .switch-camera-button svg {
   width: 24px;
   height: 24px;
 }

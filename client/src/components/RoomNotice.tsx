@@ -29,16 +29,16 @@ export function RoomNotice({
     text =
       'Waiting to reconnect to Strangely. Try restarting your camera if this continues.';
     icon = 'refresh';
-  } else if (stream && faceStatus !== 'present' && faceStatus !== 'loading') {
-    severity =
-      faceStatus === 'paused' || faceStatus === 'unavailable'
-        ? 'error'
-        : 'warning';
-    title = faceStatus === 'paused' ? 'Video paused' : 'Camera needs attention';
+  } else if (
+    stream &&
+    faceStatus !== 'present' &&
+    faceStatus !== 'loading' &&
+    faceStatus !== 'unavailable'
+  ) {
+    severity = faceStatus === 'paused' ? 'error' : 'warning';
+    title = faceStatus === 'paused' ? 'Video paused' : 'Camera update';
     text =
-      faceStatus === 'unavailable'
-        ? 'The camera check is unavailable. Stop and restart your camera.'
-        : 'Keep only your face visible with good lighting. Never involve minors in a call.';
+      'Keep only your face visible with good lighting. Never involve minors in a call.';
     icon = 'camera';
   } else if (state === 'reconnecting') {
     severity = 'warning';

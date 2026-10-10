@@ -9,7 +9,7 @@ class FakePeer {
   onicecandidate = null;
   ontrack = null;
   onconnectionstatechange: (() => void) | null = null;
-  addTrack = vi.fn();
+  addTrack = vi.fn(() => ({ replaceTrack: vi.fn(async () => {}) }));
   addIceCandidate = vi.fn(async () => {});
   createOffer = vi.fn(async () => ({ type: 'offer' as const, sdp: 'offer' }));
   createAnswer = vi.fn(async () => ({
@@ -114,6 +114,34 @@ describe('peer lifecycle', () => {
     transport.close();
     expect(clonedTrack.stop).toHaveBeenCalledOnce();
     expect(originalTrack.stop).not.toHaveBeenCalled();
+  });
+  it('replaces only the outbound clone when the local camera changes', async () => {
+    const replacementClone = { kind: 'video', enabled: true, stop: vi.fn() };
+    const replacement = {
+      kind: 'video',
+      enabled: true,
+      stop: vi.fn(),
+      clone: () => replacementClone,
+    } as unknown as MediaStreamTrack;
+    const sender = FakePeer.current.addTrack.mock.results[0]!.value;
+    await transport.replaceVideoTrack(replacement);
+    expect(sender.replaceTrack).toHaveBeenCalledTimes(1);
+    expect(sender.replaceTrack).toHaveBeenCalledWith(replacementClone);
+    expect(clonedTrack.stop).toHaveBeenCalledOnce();
+    expect(replacement.stop).not.toHaveBeenCalled();
+  });
+  it('keeps the current outbound camera when a replacement is rejected', async () => {
+    const replacement = {
+      kind: 'video',
+      enabled: true,
+      clone: () => ({ kind: 'video', enabled: true, stop: vi.fn() }),
+    } as unknown as MediaStreamTrack;
+    const sender = FakePeer.current.addTrack.mock.results[0]!.value;
+    sender.replaceTrack.mockRejectedValueOnce(new Error('unsupported'));
+    await expect(transport.replaceVideoTrack(replacement)).rejects.toThrow(
+      'unsupported',
+    );
+    expect(clonedTrack.stop).not.toHaveBeenCalled();
   });
   it('times out a connection that never completes', () => {
     vi.advanceTimersByTime(25000);
