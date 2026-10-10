@@ -12,6 +12,7 @@ import { API_ORIGIN } from '../../services/backend';
 import {
   acquireCamera,
   acquireMedia,
+  isCameraBusyError,
   releaseMedia,
   type CameraFacingMode,
 } from '../camera/media';
@@ -70,6 +71,12 @@ export function useConversation() {
   const generation = useRef(0);
   const actionBusy = useRef(false);
   const localVideoRef = useRef<HTMLVideoElement | null>(null);
+  // Some browsers dispatch `ended` while releasing a video track for a
+  // deliberate camera flip. Keep that expected transition from being treated
+  // as an unexpected camera disconnect.
+  const intentionallyStoppedVideoTracks = useRef(
+    new WeakSet<MediaStreamTrack>(),
+  );
   const stateRef = useRef(state);
   const sessionRef = useRef(session);
   stateRef.current = state;
@@ -387,6 +394,7 @@ export function useConversation() {
         track.addEventListener(
           'ended',
           () => {
+            if (intentionallyStoppedVideoTracks.current.has(track)) return;
             if (streamRef.current === media) {
               const stopping = stop();
               const current = generation.current;
@@ -549,8 +557,19 @@ export function useConversation() {
     const token = ++generation.current;
     const nextFacing: CameraFacingMode =
       cameraFacing === 'user' ? 'environment' : 'user';
-    try {
-      const camera = await acquireCamera(nextFacing);
+    let retiredCurrentVideo = false;
+    const retireCurrentVideo = () => {
+      if (retiredCurrentVideo) return;
+      retiredCurrentVideo = true;
+      current.getVideoTracks().forEach((track) => {
+        intentionallyStoppedVideoTracks.current.add(track);
+        track.stop();
+      });
+    };
+    const applyCamera = async (
+      camera: MediaStream,
+      facing: CameraFacingMode,
+    ) => {
       const nextVideo = camera.getVideoTracks()[0];
       if (!nextVideo) {
         releaseMedia(camera);
@@ -558,29 +577,32 @@ export function useConversation() {
       }
       if (token !== generation.current) {
         releaseMedia(camera);
-        return;
-      }
-      await peerRef.current?.replaceVideoTrack(nextVideo);
-      if (token !== generation.current) {
-        releaseMedia(camera);
-        return;
+        return false;
       }
       nextVideo.enabled = !cameraOff;
+      try {
+        await peerRef.current?.replaceVideoTrack(nextVideo);
+      } catch (failure) {
+        releaseMedia(camera);
+        throw failure;
+      }
+      if (token !== generation.current) {
+        releaseMedia(camera);
+        return false;
+      }
       const replacement = new MediaStream([
         ...current.getAudioTracks(),
         nextVideo,
       ]);
       streamRef.current = replacement;
       setStream(replacement);
-      setCameraFacing(nextFacing);
-      // The previous stream's ended handler intentionally ignores retired
-      // sources once the replacement is current, so a normal camera flip never
-      // ends a healthy conversation.
-      current.getVideoTracks().forEach((track) => track.stop());
+      setCameraFacing(facing);
+      retireCurrentVideo();
       replacement.getTracks().forEach((track) =>
         track.addEventListener(
           'ended',
           () => {
+            if (intentionallyStoppedVideoTracks.current.has(track)) return;
             if (streamRef.current === replacement) {
               const stopping = stop();
               const activeToken = generation.current;
@@ -595,6 +617,48 @@ export function useConversation() {
           { once: true },
         ),
       );
+      return true;
+    };
+    const restoreCurrentCamera = async () => {
+      try {
+        const restored = await acquireCamera(cameraFacing);
+        const restoredSuccessfully = await applyCamera(restored, cameraFacing);
+        if (restoredSuccessfully) {
+          setError(null);
+          setMessage(
+            'This device could not switch cameras, so your current camera stayed on.',
+          );
+        }
+        return restoredSuccessfully;
+      } catch {
+        return false;
+      }
+    };
+    try {
+      let camera: MediaStream;
+      try {
+        // This is seamless on browsers that permit two video requests during
+        // a handoff, so the existing preview remains visible while switching.
+        camera = await acquireCamera(nextFacing);
+      } catch (failure) {
+        if (!isCameraBusyError(failure)) throw failure;
+        // Safari and some Chrome Android devices need the active video track
+        // released before they will open the other physical camera.
+        retireCurrentVideo();
+        try {
+          camera = await acquireCamera(nextFacing);
+        } catch (retryFailure) {
+          if (await restoreCurrentCamera()) return;
+          throw retryFailure;
+        }
+      }
+      try {
+        const applied = await applyCamera(camera, nextFacing);
+        if (!applied) return;
+      } catch (failure) {
+        if (retiredCurrentVideo && (await restoreCurrentCamera())) return;
+        throw failure;
+      }
       setMessage(
         nextFacing === 'environment'
           ? 'Using your back camera.'

@@ -53,6 +53,19 @@ function cameraError(error: unknown, microphoneRequired: boolean): Error {
   );
 }
 
+/**
+ * Mobile WebKit can reject a second video request while another camera track
+ * is live. This is recoverable during a camera flip: release only the old
+ * video track, then request the replacement again without touching the mic.
+ */
+export function isCameraBusyError(error: unknown) {
+  const cause = error instanceof Error ? error.cause : undefined;
+  return (
+    cause instanceof DOMException &&
+    (cause.name === 'NotReadableError' || cause.name === 'AbortError')
+  );
+}
+
 async function capture(
   facingMode: CameraFacingMode,
   audio: MediaTrackConstraints | false,

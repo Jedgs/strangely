@@ -1,5 +1,9 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { acquireCamera, acquireMedia } from '../src/features/camera/media';
+import {
+  acquireCamera,
+  acquireMedia,
+  isCameraBusyError,
+} from '../src/features/camera/media';
 
 const media = {} as MediaStream;
 
@@ -39,5 +43,13 @@ describe('browser media acquisition', () => {
       video: true,
       audio: false,
     });
+  });
+
+  it('recognizes a camera-busy failure that can be retried after a flip handoff', () => {
+    const error = new Error('camera busy', {
+      cause: new DOMException('busy', 'NotReadableError'),
+    });
+    expect(isCameraBusyError(error)).toBe(true);
+    expect(isCameraBusyError(new Error('permission denied'))).toBe(false);
   });
 });
