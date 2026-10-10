@@ -8,24 +8,61 @@ export function RemoteVideo({ stream }: { stream: MediaStream | null }) {
 
   useEffect(() => {
     const video = videoRef.current;
-    if (!video) return;
+    if (!video || !stream) return;
     let active = true;
-    video.srcObject = stream;
-    setNeedsPlay(false);
-    setPlayError(false);
-    if (stream)
+
+    const playVideo = () => {
+      if (!video) return;
+      if (video.srcObject !== stream) {
+        video.srcObject = stream;
+      }
+      setNeedsPlay(false);
+      setPlayError(false);
       void video.play().catch(() => {
         if (active) setNeedsPlay(true);
       });
+    };
+
+    playVideo();
+
+    const handleTrackEvent = () => {
+      if (active) playVideo();
+    };
+
+    stream.addEventListener('addtrack', handleTrackEvent);
+    stream.addEventListener('removetrack', handleTrackEvent);
+
+    const tracks = stream.getTracks();
+    tracks.forEach((track) => {
+      track.addEventListener('unmute', handleTrackEvent);
+      track.addEventListener('mute', handleTrackEvent);
+      track.addEventListener('ended', handleTrackEvent);
+    });
+
     return () => {
       active = false;
-      video.srcObject = null;
+      stream.removeEventListener('addtrack', handleTrackEvent);
+      stream.removeEventListener('removetrack', handleTrackEvent);
+      tracks.forEach((track) => {
+        track.removeEventListener('unmute', handleTrackEvent);
+        track.removeEventListener('mute', handleTrackEvent);
+        track.removeEventListener('ended', handleTrackEvent);
+      });
+      if (video.srcObject === stream) {
+        video.srcObject = null;
+      }
     };
   }, [stream]);
 
   async function play() {
     try {
-      await videoRef.current?.play();
+      const video = videoRef.current;
+      if (video && stream) {
+        if (video.srcObject !== stream) {
+          video.srcObject = stream;
+        }
+        await video.play();
+      }
       setNeedsPlay(false);
       setPlayError(false);
     } catch {

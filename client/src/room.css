@@ -296,7 +296,8 @@
   border-color: #ff779bbb;
   color: #ffe8ed;
 }
-.room-page.chrome-hidden .notice-info {
+.room-page.chrome-hidden .notice-info,
+.room-page .room-notification.notice-auto-hidden {
   opacity: 0;
   visibility: hidden;
 }

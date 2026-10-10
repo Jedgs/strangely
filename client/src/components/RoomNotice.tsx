@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import type { ConversationController } from '../features/video-chat/useConversation';
 import { Icon, type IconName } from './Icon';
 
@@ -49,14 +50,24 @@ export function RoomNotice({
     text = 'One moment while we check that your face is visible.';
     icon = 'camera';
   }
+
+  // Auto-hide the notice 10 seconds after the message stops changing.
+  const contentKey = `${severity}:${text}`;
+  const [visible, setVisible] = useState(true);
+  useEffect(() => {
+    setVisible(true);
+    const timer = window.setTimeout(() => setVisible(false), 10_000);
+    return () => window.clearTimeout(timer);
+  }, [contentKey]);
+
   if (!text) return null;
   return (
     <aside
-      className={`room-notification notice-${severity}`}
+      className={`room-notification notice-${severity} ${visible ? '' : 'notice-auto-hidden'}`}
       aria-label="Room notifications"
     >
       <div
-        key={`${severity}:${text}`}
+        key={contentKey}
         className="room-notice"
         role={severity === 'error' ? 'alert' : 'status'}
       >

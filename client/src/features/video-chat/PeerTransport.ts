@@ -27,6 +27,14 @@ export class PeerTransport {
   private videoEnabled = true;
   private audioEnabled = true;
 
+  private remoteStream: MediaStream | null = null;
+
+  private getOrCreateRemoteStream(): MediaStream | null {
+    if (typeof MediaStream === 'undefined') return null;
+    this.remoteStream ??= new MediaStream();
+    return this.remoteStream;
+  }
+
   constructor(
     readonly matchId: string,
     session: SessionInfo,
@@ -67,7 +75,27 @@ export class PeerTransport {
     };
     this.peer.ontrack = (event) => {
       if (!this.active) return;
-      callbacks.remote(event.streams[0] ?? new MediaStream([event.track]));
+      const stream = this.getOrCreateRemoteStream();
+      if (event.streams[0]) {
+        if (stream) {
+          event.streams[0].getTracks().forEach((track) => {
+            if (!stream.getTracks().includes(track)) {
+              stream.addTrack(track);
+            }
+          });
+        }
+      }
+      if (event.track && stream && !stream.getTracks().includes(event.track)) {
+        stream.addTrack(event.track);
+      }
+      const outboundStream =
+        stream && typeof MediaStream !== 'undefined'
+          ? new MediaStream(stream.getTracks())
+          : (event.streams[0] ??
+            (typeof MediaStream !== 'undefined'
+              ? new MediaStream([event.track])
+              : (event.streams[0] as unknown as MediaStream)));
+      callbacks.remote(outboundStream);
     };
     this.peer.onconnectionstatechange = () => {
       if (!this.active) return;
@@ -169,6 +197,8 @@ export class PeerTransport {
     this.peer.onconnectionstatechange = null;
     this.candidates = [];
     this.peer.close();
+    this.remoteStream?.getTracks().forEach((track) => track.stop());
+    this.remoteStream = null;
     this.outboundTracks.forEach((track) => track.stop());
     this.outboundTracks.clear();
   }
