@@ -1,6 +1,6 @@
 // Development-only visual fixture; Vite's production entry is index.html.
 // No session, consent, camera, microphone, or remote participant is used here.
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { ChatRoom } from './pages/ChatRoom';
 import { Dialog } from './components/Dialog';
@@ -17,6 +17,8 @@ const progressPreview =
   new URLSearchParams(location.search).get('view') === 'progress';
 const cameraPreview =
   new URLSearchParams(location.search).get('camera') === 'on';
+const simulatedCamera =
+  new URLSearchParams(location.search).get('camera') === 'simulated';
 const state: ConversationState =
   requestedState === 'error'
     ? 'error'
@@ -30,9 +32,48 @@ const action = async () => {};
 
 function RoomPreview() {
   const localVideoRef = useRef<HTMLVideoElement | null>(null);
-  const stream = useMemo(() => (cameraPreview ? new MediaStream() : null), []);
+  const emptyStream = useMemo(
+    () => (cameraPreview ? new MediaStream() : null),
+    [],
+  );
+  const [simulatedStream, setSimulatedStream] = useState<MediaStream | null>(
+    null,
+  );
+  const [cameraFacing, setCameraFacing] = useState<'user' | 'environment'>(
+    'user',
+  );
+  const stream = simulatedCamera ? simulatedStream : emptyStream;
+  useEffect(() => {
+    if (!simulatedCamera) return;
+    const canvas = document.createElement('canvas');
+    canvas.width = cameraFacing === 'user' ? 640 : 480;
+    canvas.height = cameraFacing === 'user' ? 480 : 640;
+    const context = canvas.getContext('2d');
+    if (!context) return;
+    const draw = () => {
+      context.fillStyle = cameraFacing === 'user' ? '#d42b91' : '#1259c7';
+      context.fillRect(0, 0, canvas.width, canvas.height);
+      context.fillStyle = '#fff';
+      context.font = 'bold 32px sans-serif';
+      context.fillText(cameraFacing === 'user' ? 'FRONT' : 'BACK', 48, 80);
+    };
+    const source = canvas.captureStream(12);
+    draw();
+    const timer = window.setInterval(draw, 200);
+    setSimulatedStream(source);
+    return () => {
+      window.clearInterval(timer);
+      source.getTracks().forEach((track) => track.stop());
+    };
+  }, [cameraFacing]);
+  useEffect(() => {
+    const video = localVideoRef.current;
+    if (!video || !simulatedCamera) return;
+    video.srcObject = simulatedStream;
+    if (simulatedStream) void video.play().catch(() => {});
+  }, [simulatedStream]);
   const conversation: ConversationController = {
-    state,
+    state: simulatedCamera ? 'preview' : state,
     message:
       state === 'connected'
         ? 'You’re connected. A simple hello is a good start.'
@@ -50,7 +91,7 @@ function RoomPreview() {
     faceStatus: 'present',
     micMuted: false,
     cameraOff: false,
-    cameraFacing: 'user',
+    cameraFacing,
     socketReady: state !== 'error',
     busy: false,
     matchId: state === 'connected' ? 'visual-fixture' : null,
@@ -64,11 +105,28 @@ function RoomPreview() {
     block: action,
     toggleMute: noop,
     toggleCamera: noop,
-    switchCamera: action,
+    switchCamera: async () => {
+      setCameraFacing((current) =>
+        current === 'user' ? 'environment' : 'user',
+      );
+    },
     leave: action,
   };
   return (
-    <ChatRoom conversation={conversation} onLeave={action} onLegal={noop} />
+    <>
+      <ChatRoom conversation={conversation} onLeave={action} onLegal={noop} />
+      {simulatedCamera && (
+        <button
+          type="button"
+          style={{ position: 'fixed', zIndex: 100, top: 8, left: 8 }}
+          onClick={() => {
+            void conversation.switchCamera();
+          }}
+        >
+          Flip simulated camera
+        </button>
+      )}
+    </>
   );
 }
 

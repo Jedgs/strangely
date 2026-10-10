@@ -13,6 +13,7 @@ import { ConversationControls } from '../components/ConversationControls';
 import { RoomNotice } from '../components/RoomNotice';
 import { RoomActions } from '../components/RoomActions';
 import { Dialog } from '../components/Dialog';
+import { coverVideoFrame } from '../features/camera/previewFraming';
 
 const stageContent: Record<
   ConversationState,
@@ -107,7 +108,56 @@ export function ChatRoom({
   const lastPointerActivity = useRef(0);
   const keyboardNavigation = useRef(false);
   const headingRef = useRef<HTMLHeadingElement>(null);
+  const localStageRef = useRef<HTMLElement>(null);
   const { state, stream, cameraOff, micMuted } = conversation;
+  useEffect(() => {
+    const video = conversation.localVideoRef.current;
+    const stage = localStageRef.current;
+    if (!video || !stage) return;
+
+    // Safari can render a newly selected camera as if object-fit were
+    // "contain". Size the video itself to cover the stable stage instead.
+    // The source dimensions can change again after the first frame, so keep
+    // listening for metadata and intrinsic-size changes on every capture.
+    const updateFraming = () => {
+      if (!stream || video.srcObject !== stream) return;
+      const size = coverVideoFrame(
+        video.videoWidth,
+        video.videoHeight,
+        stage.clientWidth,
+        stage.clientHeight,
+      );
+      video.style.width = size ? `${size.width}px` : '';
+      video.style.height = size ? `${size.height}px` : '';
+      video.style.left = size ? `${size.left}px` : '';
+      video.style.top = size ? `${size.top}px` : '';
+      video.style.objectFit = size ? 'fill' : '';
+    };
+    // Do not keep dimensions from the previous lens while the new stream is
+    // waiting for its first frame.
+    video.style.width = '';
+    video.style.height = '';
+    video.style.left = '';
+    video.style.top = '';
+    video.style.objectFit = '';
+    video.addEventListener('loadedmetadata', updateFraming);
+    video.addEventListener('resize', updateFraming);
+    video.addEventListener('playing', updateFraming);
+    const observer =
+      typeof ResizeObserver === 'undefined'
+        ? null
+        : new ResizeObserver(updateFraming);
+    observer?.observe(stage);
+    window.addEventListener('resize', updateFraming);
+    updateFraming();
+    return () => {
+      observer?.disconnect();
+      window.removeEventListener('resize', updateFraming);
+      video.removeEventListener('loadedmetadata', updateFraming);
+      video.removeEventListener('resize', updateFraming);
+      video.removeEventListener('playing', updateFraming);
+    };
+  }, [conversation.localVideoRef, stream]);
   const content = stageContent[state];
   const error = actionError ?? conversation.error;
   const keepChromeVisible = Boolean(
@@ -287,6 +337,7 @@ export function ChatRoom({
           </span>
         </section>
         <section
+          ref={localStageRef}
           className="local-stage call-pane"
           aria-label="Your camera preview"
         >
